@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# =============================================================================
+# cpyx - punto de entrada.
+# Localiza la biblioteca de módulos, la carga y delega en main().
+# =============================================================================
+
+set -euo pipefail
+
+# Resolver symlinks para encontrar la ruta real del ejecutable
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+BIN_DIR="$(dirname "$SELF")"
+
+# Búsqueda de la biblioteca: variable de entorno > ../lib/cpyx (instalado o repo)
+LIBDIR=""
+for candidate in "${CPYX_LIBDIR:-}" "$BIN_DIR/../lib/cpyx"; do
+    if [[ -n $candidate && -f $candidate/core.sh ]]; then
+        LIBDIR="$(cd "$candidate" && pwd)"
+        break
+    fi
+done
+
+if [[ -z $LIBDIR ]]; then
+    echo "cpyx: no se encontró la biblioteca de módulos (lib/cpyx)." >&2
+    echo "      Reinstala con install.sh o define CPYX_LIBDIR." >&2
+    exit 69
+fi
+
+# Orden de carga: cada módulo solo depende de los anteriores
+for module in core ui log args validate rsync report main; do
+    # shellcheck source=/dev/null
+    source "$LIBDIR/$module.sh"
+done
+
+main "$@"

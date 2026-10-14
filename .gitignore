@@ -1,0 +1,9 @@
+# Logs y temporales
+*.log
+*.tmp
+*~
+*.swp
+
+# Paquetes generados
+*.tar.gz
+dist/
