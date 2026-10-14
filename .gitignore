@@ -1,0 +1,12 @@
+# Logs y temporales
+*.log
+*.tmp
+*~
+*.swp
+
+# Paquetes generados
+*.tar.gz
+dist/
+
+# Gentle AI auto-generated
+.atl/

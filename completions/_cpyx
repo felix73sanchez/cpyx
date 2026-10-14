@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Felix Sanchez <felixsanchez73@outlook.com>
+
+#compdef cpyx
+# Autocompletado de cpyx para zsh
+
+_arguments -s -S \
+  '(-n --dry-run)'{-n,--dry-run}'[Simulación: no copia nada]' \
+  '(-d --delete)'{-d,--delete}'[Borrar en destino lo que no exista en origen]' \
+  '(-y --yes)'{-y,--yes}'[No pedir confirmación]' \
+  '*-x+[Excluir patrón]:patrón:' \
+  '*--exclude=[Excluir patrón]:patrón:' \
+  '(-l --log -L --no-log)-l+[Guardar el log en ARCHIVO]:archivo de log:_files' \
+  '(-l --log -L --no-log)--log=[Guardar el log en ARCHIVO]:archivo de log:_files' \
+  '(-l --log -L --no-log)'{-L,--no-log}'[No guardar log]' \
+  '(- *)'{-V,--version}'[Mostrar la versión]' \
+  '(- *)'{-h,--help}'[Mostrar la ayuda]' \
+  '1:origen:_files' \
+  '2:destino:_files -/'
