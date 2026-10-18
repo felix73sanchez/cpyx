@@ -34,6 +34,7 @@ for arg in "$@"; do
     case "$arg" in
         --yes|-y) ASSUME_YES=1 ;;
         --user) INSTALL_ARGS+=("--user") ;;
+        -v) shift; exec "$DESTDIR${PREFIX_ARG:-$HOME/.local}/bin/$NAME" "$@" ;;
         --prefix=*) INSTALL_ARGS+=("$arg"); PREFIX_ARG="${arg#--prefix=}" ;;
         -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $arg" >&2; exit 1 ;;
@@ -90,16 +91,15 @@ reinstall() {
         has_command doas && SUDO="doas"
     fi
 
-    # Incremental update: only changed files are synced, preserving existing install
-    # Sync binary (parent dir must exist)
-    mkdir -p "$DESTDIR$prefix/bin"
-    # shellcheck disable=SC2086
-    $SUDO rsync -a --delete --itemize-changes "$ROOT/bin/$NAME" "$DESTDIR$prefix/bin/$NAME"
-
-    # Sync lib modules
+    # Sync lib modules FIRST (binary depends on them)
     mkdir -p "$DESTDIR$prefix/lib"
     # shellcheck disable=SC2086
     $SUDO rsync -a --delete --itemize-changes "$ROOT/lib" "$DESTDIR$prefix/lib"
+
+    # Sync binary LAST (never ahead of its dependencies)
+    mkdir -p "$DESTDIR$prefix/bin"
+    # shellcheck disable=SC2086
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/bin/$NAME" "$DESTDIR$prefix/bin/$NAME"
 
     # Sync completions into correct subdirectories
     mkdir -p "$DESTDIR$prefix/share/bash-completion/completions"
@@ -111,6 +111,11 @@ reinstall() {
     $SUDO rsync -a --delete --itemize-changes "$ROOT/completions/$NAME.fish" "$DESTDIR$prefix/share/fish/vendor_completions.d/$NAME.fish"
     # shellcheck disable=SC2086
     $SUDO rsync -a --delete --itemize-changes "$ROOT/completions/_$NAME" "$DESTDIR$prefix/share/zsh/site-functions/_$NAME"
+
+    # Verify the binary actually runs after update
+    if ! "$DESTDIR$prefix/bin/$NAME" --version >/dev/null 2>&1; then
+        fail "Update verification failed: $DESTDIR$prefix/bin/$NAME does not run."
+    fi
 
     ok "cpyx updated to $(get_version)"
     "$DESTDIR$prefix/bin/$NAME" --version

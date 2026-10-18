@@ -11,6 +11,15 @@ versionado según [SemVer](https://semver.org/lang/es/).
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
 
+## [1.1.3] - 2026-10-18
+
+### Corregido
+- `update.sh`: sincroniza lib/ antes que bin/ para evitar estados inconsistentes.
+- `update.sh`: verifica que el binario funcione después de actualizar.
+
+### Añadido
+- `update.sh`: `-v` como alias para mostrar la versión del binario instalado.
+
 ## [1.1.2] - 2026-10-18
 
 ### Corregido
