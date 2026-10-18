@@ -12,7 +12,7 @@ report::fmt_duration() {
 }
 
 report::header() {
-    ui::banner "CPYX $CPYX_VERSION"
+    ui::banner "CPYX $CPYX_VERSION - fsxsystem"
     ui::kv "Origen"  "$CPYX_SRC"
     ui::kv "Destino" "$CPYX_DST"
     ui::kv "Inicio"  "$(date '+%Y-%m-%d %H:%M:%S')"

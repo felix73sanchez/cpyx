@@ -7,7 +7,7 @@
 # =============================================================================
 
 readonly CPYX_NAME="cpyx"
-readonly CPYX_VERSION="1.1.0"
+readonly CPYX_VERSION="1.1.1"
 
 # Códigos de salida (convención sysexits.h)
 readonly EX_USAGE=64        # uso incorrecto de la línea de comandos
