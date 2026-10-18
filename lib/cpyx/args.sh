@@ -37,6 +37,7 @@ carpeta; sin "/" copia la carpeta misma dentro del destino.
 ${C_BOLD}Entorno:${C_RESET}
   NO_COLOR          Desactiva los colores
   CPYX_KEEP_LOGS    Logs que se conservan en el directorio por defecto (30)
+  CPYX_PROGRESS     0 desactiva la barra de progreso (por defecto 1)
 EOF
 }
 

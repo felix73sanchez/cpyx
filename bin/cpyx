@@ -29,9 +29,13 @@ if [[ -z $LIBDIR ]]; then
 fi
 
 # Orden de carga: cada módulo solo depende de los anteriores
-for module in core ui log args validate rsync report main; do
+for module in core ui log args validate rsync progress report main; do
     # shellcheck source=/dev/null
     source "$LIBDIR/$module.sh"
 done
+
+# Limpieza de temporales creados durante la copia
+declare -a CPYX_TMPFILES=()
+trap 'rm -rf -- ${CPYX_TMPFILES[@]+"${CPYX_TMPFILES[@]}"}' EXIT
 
 main "$@"

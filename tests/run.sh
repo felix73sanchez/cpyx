@@ -36,6 +36,9 @@ check() {
 
 rc_is() { [[ $RC -eq $1 ]]; }
 has()   { [[ $OUT == *"$1"* ]]; }
+rc_nonzero() { [[ $RC -ne 0 ]]; }
+hasF()      { grep -aF -- "$1" <<<"$OUT" >/dev/null 2>&1; }
+has_size()  { grep -aE '[0-9.]+ (B|KB|MB|GB) / ' <<<"$OUT" >/dev/null 2>&1; }
 
 fresh() {
     rm -rf "$WORK/src" "$WORK/dst" "$WORK/state"
@@ -146,6 +149,56 @@ echo "== Enlace simbólico"
 ln -s "$CPYX" "$WORK/enlace"
 run "$WORK/enlace" --version
 check "funciona vía symlink" has "cpyx 1.0.0"
+
+echo "== Barra de progreso (utilidades)"
+# shellcheck source=/dev/null
+source "$ROOT/lib/cpyx/core.sh"
+# shellcheck source=/dev/null
+source "$ROOT/lib/cpyx/ui.sh"
+# shellcheck source=/dev/null
+source "$ROOT/lib/cpyx/progress.sh"
+
+check "human_size 0"        test "$(progress::human_size 0)"          = "0 B"
+check "human_size 512"      test "$(progress::human_size 512)"        = "512 B"
+check "human_size 1024"     test "$(progress::human_size 1024)"       = "1.0 KB"
+check "human_size 1536"     test "$(progress::human_size 1536)"       = "1.5 KB"
+check "human_size 1048576"  test "$(progress::human_size 1048576)"    = "1.0 MB"
+check "human_size 1GB"      test "$(progress::human_size 1073741824)" = "1.0 GB"
+check "truncate recorta con ..." test "$(progress::truncate "aaaaaaaaaa" 6)" = "aaa..."
+check "truncate rellena cortos"  test "$(progress::truncate "ab" 6)"       = "ab    "
+check "bar 0%"              test "$(progress::bar 0 10)"   = "[░░░░░░░░░░]"
+check "bar 100%"            test "$(progress::bar 100 10)" = "[██████████]"
+check "bar 50%"             test "$(progress::bar 50 10)"  = "[█████░░░░░]"
+check "bar no pasa de 100"  test "$(progress::bar 150 10)" = "[██████████]"
+
+echo "== Integración (barra en vivo)"
+if command -v script >/dev/null 2>&1; then
+    fresh
+    OUT="$(NO_COLOR= TERM=xterm script -qec "$CPYX -L $WORK/src/ $WORK/dst" /dev/null </dev/null 2>&1)"
+    RC=$?
+    check "integración sale con 0" rc_is 0
+    check "integración copia a.txt" test -f "$WORK/dst/a.txt"
+    check "integración dibuja la barra" hasF "["
+    check "integración llega al 100%" has "100%"
+    check "integración muestra tamaños" has_size
+else
+    echo "  (se omite: 'script' no disponible)"
+fi
+
+echo "== Integración (error y causa probable)"
+if command -v script >/dev/null 2>&1 && [[ $(id -u) -ne 0 ]]; then
+    fresh
+    chmod 000 "$WORK/src/a.txt"
+    OUT="$(NO_COLOR= TERM=xterm script -qec "$CPYX -L $WORK/src/ $WORK/dst" /dev/null </dev/null 2>&1)"
+    RC=$?
+    chmod 644 "$WORK/src/a.txt"
+    check "error sale con código distinto de 0" rc_nonzero
+    check "error muestra origen"  has "Origen"
+    check "error muestra destino" has "Destino"
+    check "error muestra causa probable" has "Causa"
+else
+    echo "  (se omite: 'script' no disponible o se ejecuta como root)"
+fi
 
 echo
 echo "Resultado: $PASS correctas, $FAIL fallidas"

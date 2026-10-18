@@ -25,6 +25,7 @@ main() {
     esac
 
     validate::require_rsync
+    validate::require_pv
     validate::paths
     validate::confirm_delete
     log::init

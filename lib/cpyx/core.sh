@@ -7,7 +7,7 @@
 # =============================================================================
 
 readonly CPYX_NAME="cpyx"
-readonly CPYX_VERSION="1.0.0"
+readonly CPYX_VERSION="1.1.0"
 
 # Códigos de salida (convención sysexits.h)
 readonly EX_USAGE=64        # uso incorrecto de la línea de comandos
@@ -18,6 +18,9 @@ readonly EX_INTERRUPT=130   # interrumpido con Ctrl+C
 
 # Cantidad de logs que se conservan en el directorio por defecto
 CPYX_KEEP_LOGS="${CPYX_KEEP_LOGS:-30}"
+
+# Barra de progreso visual (1 = activada, 0 = desactivada)
+CPYX_PROGRESS="${CPYX_PROGRESS:-1}"
 
 # Restablece toda la configuración de ejecución a sus valores por defecto
 core::reset_config() {
@@ -35,6 +38,10 @@ core::reset_config() {
     CPYX_RSYNC_ARGS=()
     CPYX_STATUS=0
     CPYX_ELAPSED=0
+    CPYX_HAS_PV=0            # pv opcional instalado
+    CPYX_TOTAL_BYTES=0       # tamaño total de la copia (origen local)
+    CPYX_TOTAL_FILES=0       # nº de archivos de la copia (origen local)
+    CPYX_TMPFILES=()         # temporales a borrar al salir
 }
 
 # ¿Es una ruta remota (host:ruta)? Igual que rsync: hay ":" antes de cualquier "/"

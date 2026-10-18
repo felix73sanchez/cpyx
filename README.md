@@ -99,6 +99,7 @@ autoload -Uz compinit && compinit
 
 - `NO_COLOR`: desactiva los colores.
 - `CPYX_KEEP_LOGS`: logs que se conservan en el directorio por defecto (30).
+- `CPYX_PROGRESS`: `0` desactiva la barra de progreso (por defecto `1`).
 - `CPYX_LIBDIR`: ruta alternativa a la biblioteca de módulos.
 - Los logs van a `${XDG_STATE_HOME:-~/.local/state}/cpyx/`.
 

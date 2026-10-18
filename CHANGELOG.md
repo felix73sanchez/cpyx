@@ -5,6 +5,26 @@ versionado según [SemVer](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido
+- `uninstall.sh`: desinstalador independiente con detección de prefix, elevación sudo/doas y soporte `DESTDIR`.
+- `update.sh`: actualización completa vía git con detección de rama, listado de commits nuevos y reinstalación limpia.
+
+### Modificado
+- `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
+
+## [1.1.0] - 2026-10-18
+
+### Añadido
+- Barra de progreso visual propia (bloques Unicode, porcentaje, tamaño, velocidad y ETA)
+  dibujada en stderr a partir de `rsync --info=progress2`, con el archivo en curso.
+- Colores por estado (amarillo copiando, verde completado), iconos y nombre truncado.
+- Bloque de error con causa probable (permiso de lectura/escritura, sin espacio, ruta ausente).
+- Nuevo módulo `lib/cpyx/progress.sh`; `pv` como dependencia opcional con fallback a rsync.
+- Variable de entorno `CPYX_PROGRESS` para desactivar la barra.
+
+### Modificado
+- `rsync.sh` separa la barra (stderr/tty) del listado y los errores (log).
+
 ## [1.0.0] - 2026-10-14
 
 ### Añadido

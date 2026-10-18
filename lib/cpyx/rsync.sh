@@ -30,19 +30,54 @@ rsync::build_args() {
 }
 
 # Ejecuta rsync. Deja el código de salida en CPYX_STATUS y la duración en
-# CPYX_ELAPSED. La salida se muestra en pantalla y, si hay log, también se guarda.
+#   CPYX_ELAPSED. Con tty y colores dibuja la barra de progreso en stderr y
+#   guarda listado/errores en el log; si no, usa la salida básica de rsync.
 rsync::run() {
     local start=$SECONDS
+    local status=0
 
-    set +e
-    if (( CPYX_NO_LOG )); then
-        rsync "${CPYX_RSYNC_ARGS[@]}" -- "$CPYX_SRC" "$CPYX_DST"
-        CPYX_STATUS=$?
-    else
-        rsync "${CPYX_RSYNC_ARGS[@]}" -- "$CPYX_SRC" "$CPYX_DST" 2>&1 | tee -- "$CPYX_LOG_FILE"
-        CPYX_STATUS=${PIPESTATUS[0]}
+    if progress::active && [[ -d $CPYX_SRC ]]; then
+        progress::compute_totals "$CPYX_SRC"
     fi
-    set -e
 
+    if progress::active; then
+        local tmpdir outf errf rpid render_pid
+        tmpdir="$(mktemp -d)"
+        CPYX_TMPFILES+=("$tmpdir")
+        outf="$tmpdir/out"
+        errf="$tmpdir/err"
+        progress::set_outfile "$outf"
+
+        set +e
+        rsync "${CPYX_RSYNC_ARGS[@]}" -- "$CPYX_SRC" "$CPYX_DST" \
+            >"$outf" 2>"$errf" &
+        rpid=$!
+        progress::watch "$rpid" "$outf" &
+        render_pid=$!
+        wait "$rpid"; status=$?
+        wait "$render_pid" 2>/dev/null
+        set -e
+
+        progress::finish
+        if (( status != 0 )); then
+            progress::render_error "$status" "$CPYX_SRC" "$CPYX_DST" "$errf"
+        fi
+        if (( ! CPYX_NO_LOG )); then
+            progress::write_log "$outf" "$errf"
+        fi
+        progress::set_outfile ""
+    else
+        set +e
+        if (( CPYX_NO_LOG )); then
+            rsync "${CPYX_RSYNC_ARGS[@]}" -- "$CPYX_SRC" "$CPYX_DST"
+            status=$?
+        else
+            rsync "${CPYX_RSYNC_ARGS[@]}" -- "$CPYX_SRC" "$CPYX_DST" 2>&1 | tee -- "$CPYX_LOG_FILE"
+            status=${PIPESTATUS[0]}
+        fi
+        set -e
+    fi
+
+    CPYX_STATUS=$status
     CPYX_ELAPSED=$(( SECONDS - start ))
 }

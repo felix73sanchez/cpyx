@@ -6,12 +6,62 @@
 # validate.sh - comprobaciones previas: dependencias, rutas, confirmaciones
 # =============================================================================
 
+# Detecta el gestor de paquetes e instala dependencias faltantes (rsync, bash, pv)
+validate::install_missing() {
+    local faltan=()
+    command -v rsync >/dev/null 2>&1 || faltan+=(rsync)
+    command -v bash  >/dev/null 2>&1 || faltan+=(bash)
+    command -v pv    >/dev/null 2>&1 || faltan+=(pv)
+
+    if (( ${#faltan[@]} == 0 )); then
+        return 0
+    fi
+
+    local SUDO=""
+    if [ "$(id -u)" -ne 0 ]; then
+        command -v sudo >/dev/null 2>&1 && SUDO="sudo"
+        command -v doas >/dev/null 2>&1 && SUDO="doas"
+    fi
+
+    ui::note "Instalando dependencias: ${faltan[*]}"
+    if command -v apt-get >/dev/null 2>&1; then
+        $SUDO apt-get update -qq && $SUDO apt-get install -y "${faltan[@]}"
+    elif command -v dnf >/dev/null 2>&1; then
+        $SUDO dnf install -y "${faltan[@]}"
+    elif command -v yum >/dev/null 2>&1; then
+        $SUDO yum install -y "${faltan[@]}"
+    elif command -v pacman >/dev/null 2>&1; then
+        $SUDO pacman -S --needed --noconfirm "${faltan[@]}"
+    elif command -v zypper >/dev/null 2>&1; then
+        $SUDO zypper --non-interactive install "${faltan[@]}"
+    elif command -v apk >/dev/null 2>&1; then
+        $SUDO apk add "${faltan[@]}"
+    elif command -v xbps-install >/dev/null 2>&1; then
+        $SUDO xbps-install -Sy "${faltan[@]}"
+    elif command -v emerge >/dev/null 2>&1; then
+        $SUDO emerge --noreplace "${faltan[@]}"
+    elif command -v nix-env >/dev/null 2>&1; then
+        nix-env -iA nixpkgs.rsync nixpkgs.bash
+    else
+        ui::die "$EX_UNAVAILABLE" \
+            "Gestor de paquetes no detectado. Instala manualmente: ${faltan[*]}"
+    fi
+
+    # Verificar que se instalaron correctamente
+    local aun_faltan=()
+    for dep in "${faltan[@]}"; do
+        command -v "$dep" >/dev/null 2>&1 || aun_faltan+=("$dep")
+    done
+    if (( ${#aun_faltan[@]} > 0 )); then
+        ui::die "$EX_UNAVAILABLE" \
+            "No se pudieron instalar: ${aun_faltan[*]}. Instálalos manualmente."
+    fi
+    ui::note "Dependencias instaladas: ${faltan[*]}"
+}
+
 # Verifica que rsync exista y detecta si soporta la barra de progreso global
 validate::require_rsync() {
-    if ! command -v rsync >/dev/null 2>&1; then
-        ui::die "$EX_UNAVAILABLE" \
-            "rsync no está instalado. Ejecuta install.sh o instálalo con tu gestor de paquetes."
-    fi
+    validate::install_missing
 
     local first
     first="$(rsync --version 2>/dev/null | head -n1)" || true
@@ -28,6 +78,13 @@ validate::require_rsync() {
             CPYX_RSYNC_MODERN=1
         fi
     fi
+}
+
+# Detecta pv de forma opcional. Si no está, la barra usa el progreso de rsync.
+validate::require_pv() {
+    CPYX_HAS_PV=0
+    command -v pv >/dev/null 2>&1 && CPYX_HAS_PV=1
+    return 0
 }
 
 # Comprueba origen y destino; crea el destino local si hace falta
