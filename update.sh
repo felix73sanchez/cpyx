@@ -91,19 +91,26 @@ reinstall() {
     fi
 
     # Incremental update: only changed files are synced, preserving existing install
-    local targets=(
-        "$ROOT/bin/$NAME:$DESTDIR$prefix/bin/$NAME"
-        "$ROOT/lib:$DESTDIR$prefix/lib"
-        "$ROOT/completions:$DESTDIR$prefix/share"
-    )
+    # Sync binary (parent dir must exist)
+    mkdir -p "$DESTDIR$prefix/bin"
+    # shellcheck disable=SC2086
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/bin/$NAME" "$DESTDIR$prefix/bin/$NAME"
 
-    for t in "${targets[@]}"; do
-        local src="${t%%:*}"
-        local dst="${t#*:}"
-        mkdir -p "$dst"
-        # shellcheck disable=SC2086
-        $SUDO rsync -a --delete --itemize-changes "$src" "$dst"
-    done
+    # Sync lib modules
+    mkdir -p "$DESTDIR$prefix/lib"
+    # shellcheck disable=SC2086
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/lib" "$DESTDIR$prefix/lib"
+
+    # Sync completions into correct subdirectories
+    mkdir -p "$DESTDIR$prefix/share/bash-completion/completions"
+    mkdir -p "$DESTDIR$prefix/share/fish/vendor_completions.d"
+    mkdir -p "$DESTDIR$prefix/share/zsh/site-functions"
+    # shellcheck disable=SC2086
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/completions/$NAME.bash" "$DESTDIR$prefix/share/bash-completion/completions/$NAME"
+    # shellcheck disable=SC2086
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/completions/$NAME.fish" "$DESTDIR$prefix/share/fish/vendor_completions.d/$NAME.fish"
+    # shellcheck disable=SC2086
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/completions/_$NAME" "$DESTDIR$prefix/share/zsh/site-functions/_$NAME"
 
     ok "cpyx updated to $(get_version)"
     "$DESTDIR$prefix/bin/$NAME" --version

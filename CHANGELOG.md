@@ -11,6 +11,12 @@ versionado según [SemVer](https://semver.org/lang/es/).
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
 
+## [1.1.2] - 2026-10-18
+
+### Corregido
+- `update.sh`: corrige `mkdir -p` que fallaba cuando el binario ya existía como archivo.
+- `update.sh`: sincroniza completions en los subdirectorios correctos de `share/`.
+
 ## [1.1.1] - 2026-10-18
 
 ### Modificado
