@@ -77,7 +77,7 @@ args::parse() {
                     flag=${cluster:0:1}; cluster=${cluster:1}
                     case $flag in
                         h) CPYX_ACTION=help ;;
-                        V) CPYX_ACTION=version ;;
+                        v|V) CPYX_ACTION=version ;;
                         n) CPYX_DRY_RUN=1 ;;
                         d) CPYX_DELETE=1 ;;
                         y) CPYX_ASSUME_YES=1 ;;

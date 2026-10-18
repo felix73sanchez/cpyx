@@ -34,7 +34,12 @@ for arg in "$@"; do
     case "$arg" in
         --yes|-y) ASSUME_YES=1 ;;
         --user) INSTALL_ARGS+=("--user") ;;
-        -v) shift; exec "$DESTDIR${PREFIX_ARG:-$HOME/.local}/bin/$NAME" "$@" ;;
+        -v)
+            DETECTED_PREFIX="${PREFIX_ARG:-$HOME/.local}"
+            [ -f "$DETECTED_PREFIX/bin/$NAME" ] || DETECTED_PREFIX="/usr/local"
+            [ -f "$DETECTED_PREFIX/bin/$NAME" ] || DETECTED_PREFIX="/usr"
+            exec "$DETECTED_PREFIX/bin/$NAME" "$@"
+            ;;
         --prefix=*) INSTALL_ARGS+=("$arg"); PREFIX_ARG="${arg#--prefix=}" ;;
         -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $arg" >&2; exit 1 ;;
@@ -92,14 +97,15 @@ reinstall() {
     fi
 
     # Sync lib modules FIRST (binary depends on them)
+    # Trailing slash: sync CONTENTS of lib/ INTO lib/, not lib/ itself
     mkdir -p "$DESTDIR$prefix/lib"
     # shellcheck disable=SC2086
-    $SUDO rsync -a --delete --itemize-changes "$ROOT/lib" "$DESTDIR$prefix/lib"
+    $SUDO rsync -a --delete --itemize-changes "$ROOT/lib/" "$DESTDIR$prefix/lib/"
 
     # Sync binary LAST (never ahead of its dependencies)
     mkdir -p "$DESTDIR$prefix/bin"
     # shellcheck disable=SC2086
-    $SUDO rsync -a --delete --itemize-changes "$ROOT/bin/$NAME" "$DESTDIR$prefix/bin/$NAME"
+    $SUDO rsync -a --itemize-changes "$ROOT/bin/$NAME" "$DESTDIR$prefix/bin/$NAME"
 
     # Sync completions into correct subdirectories
     mkdir -p "$DESTDIR$prefix/share/bash-completion/completions"
