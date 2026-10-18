@@ -22,6 +22,7 @@ DESTDIR="${DESTDIR:-}"
 export DESTDIR
 ASSUME_YES=0
 INSTALL_ARGS=()
+PREFIX_ARG=""
 
 msg()   { printf '\033[36m==>\033[0m %s\n' "$*"; }
 ok()    { printf '\033[32m OK\033[0m %s\n' "$*"; }
@@ -33,7 +34,7 @@ for arg in "$@"; do
     case "$arg" in
         --yes|-y) ASSUME_YES=1 ;;
         --user) INSTALL_ARGS+=("--user") ;;
-        --prefix=*) INSTALL_ARGS+=("$arg") ;;
+        --prefix=*) INSTALL_ARGS+=("$arg"); PREFIX_ARG="${arg#--prefix=}" ;;
         -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $arg" >&2; exit 1 ;;
     esac
@@ -54,18 +55,58 @@ get_version() {
     sed -n 's/^readonly CPYX_VERSION="\([^"]*\)".*/\1/p' "$ROOT/lib/cpyx/core.sh"
 }
 
+detect_prefix() {
+    local prefixes=("$HOME/.local" /usr/local /usr)
+    if [ -n "${PREFIX_ARG:-}" ]; then
+        prefixes=("$PREFIX_ARG")
+    fi
+    for p in "${prefixes[@]}"; do
+        if [ -f "$DESTDIR$p/bin/$NAME" ]; then
+            echo "$p"
+            return 0
+        fi
+    done
+    return 1
+}
+
 reinstall() {
-    msg "Reinstalling $NAME (uninstall + install)..."
-    # shellcheck disable=SC2086
-    if ! "$ROOT/install.sh" --uninstall ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}; then
-        fail "Failed to uninstall the previous installation."
+    local prefix
+    if ! prefix=$(detect_prefix); then
+        msg "No existing installation found. Running fresh install..."
+        # shellcheck disable=SC2086
+        if ! "$ROOT/install.sh" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}; then
+            fail "Failed to install $NAME."
+        fi
+        ok "cpyx installed $(get_version)"
+        "$ROOT/bin/cpyx" --version
+        return
     fi
-    # shellcheck disable=SC2086
-    if ! "$ROOT/install.sh" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}; then
-        fail "Failed to install $NAME."
+
+    msg "Updating $NAME in $DESTDIR$prefix (incremental rsync)..."
+
+    local SUDO=""
+    if [ "$(id -u)" -ne 0 ]; then
+        has_command sudo && SUDO="sudo"
+        has_command doas && SUDO="doas"
     fi
+
+    # Incremental update: only changed files are synced, preserving existing install
+    local targets=(
+        "$ROOT/bin/$NAME:$DESTDIR$prefix/bin/$NAME"
+        "$ROOT/lib:$DESTDIR$prefix/lib"
+        "$ROOT/completions:$DESTDIR$prefix/share"
+    )
+
+    for t in "${targets[@]}"; do
+        local src="${t%%:*}"
+        local dst="${t#*:}"
+        mkdir -p "$dst"
+        # shellcheck disable=SC2086
+        $SUDO rsync -a --delete --itemize-changes "$src" "$dst"
+    done
+
     ok "cpyx updated to $(get_version)"
-    "$ROOT/bin/cpyx" --version
+    "$DESTDIR$prefix/bin/$NAME" --version
 }
 
 # ---- Preconditions -----------------------------------------------------------
