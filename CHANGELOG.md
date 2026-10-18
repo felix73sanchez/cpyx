@@ -7,10 +7,14 @@ versionado según [SemVer](https://semver.org/lang/es/).
 
 ### Añadido
 - `uninstall.sh`: desinstalador independiente con detección de prefix, elevación sudo/doas y soporte `DESTDIR`.
-- `update.sh`: actualización completa vía git con detección de rama, listado de commits nuevos y reinstalación limpia.
 
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
+
+## [1.1.1] - 2026-10-18
+
+### Modificado
+- `update.sh` usa `rsync --delete` incremental en vez de desinstalar + instalar (no destructivo, preserva la instalación).
 
 ## [1.1.0] - 2026-10-18
 
