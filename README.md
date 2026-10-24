@@ -43,8 +43,9 @@ cpyx -n -x '*.log' -x .git /var/www /mnt/backup/www
 cpyx usuario@servidor:/datos /mnt/local/datos
 ```
 
-Igual que rsync, un origen con `/` al final copia el **contenido** de la carpeta;
-sin `/` copia la carpeta misma dentro del destino.
+El origen se copia siempre como directorio completo (con todo su contenido dentro de
+una carpeta del mismo nombre en el destino). Una barra `/` final en el origen se
+ignora automáticamente.
 
 ## Códigos de salida
 

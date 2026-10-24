@@ -31,8 +31,9 @@ ${C_BOLD}Ejemplos:${C_RESET}
   ${CPYX_NAME} -n -x '*.log' -x .git /var/www /mnt/backup/www
   ${CPYX_NAME} usuario@servidor:/datos /mnt/local/datos
 
-${C_BOLD}Nota:${C_RESET} igual que rsync, un origen con "/" al final copia el CONTENIDO de la
-carpeta; sin "/" copia la carpeta misma dentro del destino.
+${C_BOLD}Nota:${C_RESET} el origen se copia siempre como directorio completo (con todo su
+contenido dentro de una carpeta del mismo nombre en el destino). Una barra "/" final
+en el origen se ignora automáticamente.
 
 ${C_BOLD}Entorno:${C_RESET}
   NO_COLOR          Desactiva los colores
@@ -105,5 +106,10 @@ args::parse() {
         fi
         CPYX_SRC=${pos[0]}
         CPYX_DST=${pos[1]}
+        # Quitar barra final del origen: siempre copiar el directorio entero,
+        # no solo su contenido (más intuitivo que la convención de rsync)
+        if [[ -d $CPYX_SRC && $CPYX_SRC == */ ]]; then
+            CPYX_SRC="${CPYX_SRC%/}"
+        fi
     fi
 }

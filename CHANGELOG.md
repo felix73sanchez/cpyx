@@ -10,8 +10,9 @@ versionado según [SemVer](https://semver.org/lang/es/).
 
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
+- `args.sh`: origen con barra "/" final se normaliza para copiar siempre el directorio completo, no solo su contenido.
 
-## [1.1.4] - 2026-10-18
+## [1.1.5] - 2026-10-24
 
 ### Corregido
 - `update.sh`: barra `/` faltante en rsync creaba directorio anidado `lib/lib/`.
