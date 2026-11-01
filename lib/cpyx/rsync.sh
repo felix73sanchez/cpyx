@@ -82,23 +82,126 @@ rsync::build_args() {
 }
 
 rsync::backup_prune() {
-    (( CPYX_BACKUP_MODE && CPYX_BACKUP_KEEP > 0 && CPYX_STATUS == 0 && ! CPYX_DRY_RUN )) || return 0
+    (( CPYX_BACKUP_MODE && CPYX_STATUS == 0 && ! CPYX_DRY_RUN )) || return 0
     local root=$CPYX_BACKUP_ROOT
-    local keep=$CPYX_BACKUP_KEEP
     local -a snaps=()
     mapfile -t snaps < <(core::backup_list "$root")
     local count=${#snaps[@]}
+    (( count == 0 )) && return 0
+
+    local -a to_keep=()
+    local -A keep_map=()
+
+    if (( CPYX_BACKUP_KEEP_DAILY || CPYX_BACKUP_KEEP_WEEKLY || CPYX_BACKUP_KEEP_MONTHLY )); then
+        local s date_part ymd ym ywd seen_daily seen_weekly seen_monthly
+        local daily=0 weekly=0 monthly=0
+
+        for (( i=count-1; i>=0; i-- )); do
+            s="${snaps[$i]}"
+            date_part="${s%%_*}"
+            [[ -z $date_part ]] && continue
+            ymd="$date_part"
+            ym="${date_part:0:7}"
+            ywd="$(date -d "${date_part//_/ }" +%G-%V 2>/dev/null || echo "")"
+
+            if (( CPYX_BACKUP_KEEP_DAILY > 0 && daily < CPYX_BACKUP_KEEP_DAILY )); then
+                if [[ -z ${seen_daily[$ymd]+x} ]]; then
+                    seen_daily[$ymd]=1
+                    keep_map["$s"]=1
+                    to_keep+=("$s")
+                    ((daily++))
+                    continue
+                fi
+            fi
+
+            if (( CPYX_BACKUP_KEEP_WEEKLY > 0 && weekly < CPYX_BACKUP_KEEP_WEEKLY )); then
+                if [[ -n $ywd && -z ${seen_weekly[$ywd]+x} ]]; then
+                    seen_weekly[$ywd]=1
+                    if [[ -z ${keep_map[$s]+x} ]]; then
+                        keep_map["$s"]=1
+                        to_keep+=("$s")
+                    fi
+                    ((weekly++))
+                    continue
+                fi
+            fi
+
+            if (( CPYX_BACKUP_KEEP_MONTHLY > 0 && monthly < CPYX_BACKUP_KEEP_MONTHLY )); then
+                if [[ -z ${seen_monthly[$ym]+x} ]]; then
+                    seen_monthly[$ym]=1
+                    if [[ -z ${keep_map[$s]+x} ]]; then
+                        keep_map["$s"]=1
+                        to_keep+=("$s")
+                    fi
+                    ((monthly++))
+                    continue
+                fi
+            fi
+        done
+
+        # Siempre conservar latest
+        local latest_base
+        latest_base=$(basename "$(readlink -f "$CPYX_BACKUP_LATEST" 2>/dev/null)" 2>/dev/null)
+        [[ -n $latest_base ]] && keep_map["$latest_base"]=1
+
+        local -a to_delete_list=()
+        for s in "${snaps[@]}"; do
+            [[ -n ${keep_map[$s]+x} ]] && continue
+            to_delete_list+=("$s")
+        done
+
+        (( ${#to_delete_list[@]} == 0 )) && return 0
+
+        ui::note "Rotación por política: conservando ${#keep_map[@]} snapshot(s), borrando ${#to_delete_list[@]}"
+        local freed=0 sz
+        for s in "${to_delete_list[@]}"; do
+            local snap_path="$root/$s"
+            [[ -z $snap_path ]] && continue
+            [[ -n $latest_base && $s == "$latest_base" ]] && continue
+            sz=$(du -sb "$snap_path" 2>/dev/null | awk '{print $1}')
+            [[ -n $sz ]] && freed=$(( freed + sz ))
+            ui::warn "Eliminando snapshot antiguo: $s"
+            rm -rf -- "$snap_path"
+        done
+
+        if (( freed > 0 )); then
+            local freed_h
+            if (( freed >= 1073741824 )); then freed_h="$(awk "BEGIN {printf \"%.1f\", $freed/1073741824}") GB"
+            elif (( freed >= 1048576 )); then freed_h="$(awk "BEGIN {printf \"%.1f\", $freed/1048576}") MB"
+            elif (( freed >= 1024 )); then freed_h="$(awk "BEGIN {printf \"%.1f\", $freed/1024}") KB"
+            else freed_h="${freed} B"; fi
+            ui::note "Espacio liberado: $freed_h"
+        fi
+        return
+    fi
+
+    # Modo simple --keep
+    (( CPYX_BACKUP_KEEP == 0 )) && return 0
+    local keep=$CPYX_BACKUP_KEEP
     (( count <= keep )) && return 0
     local to_delete=$(( count - keep ))
-    local i
     ui::note "Rotación: borrando $to_delete snapshot(s) antiguo(s), conservando $keep"
+    local freed=0 sz
+    local i latest_base
+    latest_base=$(basename "$(readlink -f "$CPYX_BACKUP_LATEST" 2>/dev/null)" 2>/dev/null)
     for (( i=0; i<to_delete; i++ )); do
         local snap="$root/${snaps[$i]}"
         [[ -z $snap ]] && continue
-        [[ "$snap" == "$(readlink -f "$CPYX_BACKUP_LATEST" 2>/dev/null)" ]] && continue
+        [[ -n $latest_base && "${snaps[$i]}" == "$latest_base" ]] && continue
+        sz=$(du -sb "$snap" 2>/dev/null | awk '{print $1}')
+        [[ -n $sz ]] && freed=$(( freed + sz ))
         ui::warn "Eliminando snapshot antiguo: ${snaps[$i]}"
         rm -rf -- "$snap"
     done
+
+    if (( freed > 0 )); then
+        local freed_h
+        if (( freed >= 1073741824 )); then freed_h="$(awk "BEGIN {printf \"%.1f\", $freed/1073741824}") GB"
+        elif (( freed >= 1048576 )); then freed_h="$(awk "BEGIN {printf \"%.1f\", $freed/1048576}") MB"
+        elif (( freed >= 1024 )); then freed_h="$(awk "BEGIN {printf \"%.1f\", $freed/1024}") KB"
+        else freed_h="${freed} B"; fi
+        ui::note "Espacio liberado: $freed_h"
+    fi
 }
 
 rsync::backup_stats() {
