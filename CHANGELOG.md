@@ -11,6 +11,15 @@ versionado según [SemVer](https://semver.org/lang/es/).
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
 
+## [1.2.0] - 2026-11-01
+
+### Añadido
+- `--backup-list` para listar snapshots con indicador `latest`
+- `-q, --quiet` para silenciar salida informativa
+- `--keep-daily`, `--keep-weekly`, `--keep-monthly` (política de retención)
+- `-X, --exclude-from`, `--bwlimit`
+- Lock file anti-concurrencia y comprobación de espacio libre
+
 ## [1.1.9] - 2026-11-01
 
 ### Añadido
