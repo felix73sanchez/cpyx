@@ -40,6 +40,7 @@ for arg in "$@"; do
             [ -f "$DETECTED_PREFIX/bin/$NAME" ] || DETECTED_PREFIX="/usr"
             exec "$DETECTED_PREFIX/bin/$NAME" "$@"
             ;;
+        -u|--update) continue ;;
         --prefix=*) INSTALL_ARGS+=("$arg"); PREFIX_ARG="${arg#--prefix=}" ;;
         -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $arg" >&2; exit 1 ;;
