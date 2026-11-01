@@ -71,6 +71,7 @@ main() {
 
     ui::init
     core::reset_config
+    core::config_load
     args::parse "$@"
 
     case $CPYX_ACTION in

@@ -23,6 +23,35 @@ CPYX_KEEP_LOGS="${CPYX_KEEP_LOGS:-30}"
 CPYX_PROGRESS="${CPYX_PROGRESS:-1}"
 
 # Restablece toda la configuración de ejecución a sus valores por defecto
+core::config_load() {
+    local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/cpyx/config"
+    [[ -f $cfg && -r $cfg ]] || return 0
+    local line key val
+    while IFS= read -r line || [[ -n $line ]]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z $line ]] && continue
+        [[ $line == \#* ]] && continue
+        [[ $line != *"="* ]] && continue
+        key="${line%%=*}"
+        val="${line#*=}"
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        val="${val#"${val%%[![:space:]]*}"}"
+        val="${val%"${val##*[![:space:]]}"}"
+        case $key in
+            bwlimit) CPYX_BWLIMIT="$val" ;;
+            keep) CPYX_BACKUP_KEEP=$val ;;
+            keep-daily) CPYX_BACKUP_KEEP_DAILY=$val ;;
+            keep-weekly) CPYX_BACKUP_KEEP_WEEKLY=$val ;;
+            keep-monthly) CPYX_BACKUP_KEEP_MONTHLY=$val ;;
+            no-log) [[ $val == 1 || $val == true ]] && CPYX_NO_LOG=1 ;;
+            quiet) [[ $val == 1 || $val == true ]] && CPYX_QUIET=1 ;;
+            progress) CPYX_PROGRESS=$val ;;
+        esac
+    done < "$cfg"
+}
+
 core::reset_config() {
     CPYX_ACTION="run"          # run | help | version | update | backup-list | restore
     CPYX_SRC=""
