@@ -14,6 +14,21 @@
 rsync::build_args() {
     CPYX_RSYNC_ARGS=(-ahvi --partial)
 
+    if (( CPYX_RESTORE_MODE )); then
+        if (( CPYX_RSYNC_MODERN )); then
+            CPYX_RSYNC_ARGS+=(--info=progress2,stats2 "--out-format=%t  %i  %n%L")
+        else
+            CPYX_RSYNC_ARGS+=(--progress --stats)
+        fi
+        if (( CPYX_DRY_RUN )); then CPYX_RSYNC_ARGS+=(--dry-run); fi
+        [[ -n $CPYX_BWLIMIT ]] && CPYX_RSYNC_ARGS+=(--bwlimit="$CPYX_BWLIMIT")
+        local pat
+        for pat in ${CPYX_EXCLUDES[@]+"${CPYX_EXCLUDES[@]}"}; do
+            CPYX_RSYNC_ARGS+=("--exclude=$pat")
+        done
+        return
+    fi
+
     if (( CPYX_BACKUP_MODE )); then
         # En modo backup siempre reflejamos el estado exacto del origen
         CPYX_DELETE=1
@@ -102,6 +117,22 @@ rsync::backup_finalize() {
 rsync::run() {
     local start=$SECONDS
     local status=0
+
+    if (( CPYX_RESTORE_MODE )); then
+        [[ -e $CPYX_SRC ]] || ui::die "$EX_NOINPUT" "Snapshot/origen de restauración no existe: $CPYX_SRC"
+        if [[ ! -d $CPYX_DST ]]; then
+            if (( CPYX_DRY_RUN )); then
+                ui::warn "El destino no existe y se crearía: $CPYX_DST"
+            else
+                ui::note "Creando destino: $CPYX_DST"
+                mkdir -p -- "$CPYX_DST" || ui::die "$EX_CANTCREAT" "No se pudo crear el destino: $CPYX_DST"
+            fi
+        fi
+        if (( ! CPYX_DRY_RUN && ! CPYX_ASSUME_YES && -t 0 )); then
+            ui::warn "Restaurando desde snapshot (puede sobrescribir archivos en destino)."
+            ui::confirm "¿Continuar?" || { ui::note "Cancelado."; exit 1; }
+        fi
+    fi
 
     if (( CPYX_BACKUP_MODE )); then
         if (( CPYX_DRY_RUN )); then

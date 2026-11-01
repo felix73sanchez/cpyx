@@ -24,7 +24,7 @@ CPYX_PROGRESS="${CPYX_PROGRESS:-1}"
 
 # Restablece toda la configuración de ejecución a sus valores por defecto
 core::reset_config() {
-    CPYX_ACTION="run"          # run | help | version | update | backup-list
+    CPYX_ACTION="run"          # run | help | version | update | backup-list | restore
     CPYX_SRC=""
     CPYX_DST=""
     CPYX_DRY_RUN=0
@@ -45,6 +45,7 @@ core::reset_config() {
     CPYX_TMPFILES=()         # temporales a borrar al salir
     CPYX_BACKUP_MODE=0       # 1 = modo backup incremental
     CPYX_BACKUP_LIST=0       # 1 = listar snapshots
+    CPYX_RESTORE_MODE=0      # 1 = restaurar desde snapshot
     CPYX_BACKUP_KEEP=0       # número de snapshots a conservar (0 = sin rotación)
     CPYX_BACKUP_KEEP_DAILY=0
     CPYX_BACKUP_KEEP_WEEKLY=0

@@ -83,7 +83,9 @@ main() {
     validate::require_rsync
     validate::require_pv
     validate::paths
-    validate::confirm_delete
+    if (( ! CPYX_RESTORE_MODE )); then
+        validate::confirm_delete
+    fi
     validate::acquire_lock
     validate::disk_space
     log::init

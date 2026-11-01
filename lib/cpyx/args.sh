@@ -92,6 +92,7 @@ args::parse() {
             --help)        CPYX_ACTION=help ;;
             --version)     CPYX_ACTION=version ;;
             --backup-list) CPYX_ACTION=backup-list ;;
+            -r|--restore)  CPYX_ACTION=restore; CPYX_RESTORE_MODE=1 ;;
             --dry-run)     CPYX_DRY_RUN=1 ;;
             --delete)      CPYX_DELETE=1 ;;
             --yes)         CPYX_ASSUME_YES=1 ;;
@@ -114,6 +115,7 @@ args::parse() {
                         h) CPYX_ACTION=help ;;
                         v|V) CPYX_ACTION=version ;;
                         u) CPYX_ACTION=update ;;
+                        r) CPYX_ACTION=restore; CPYX_RESTORE_MODE=1 ;;
                         n) CPYX_DRY_RUN=1 ;;
                         d) CPYX_DELETE=1 ;;
                         y) CPYX_ASSUME_YES=1 ;;
@@ -151,6 +153,23 @@ args::parse() {
             ui::die "$EX_USAGE" "--backup-list requiere la raíz de backups como argumento"
         fi
         CPYX_BACKUP_ROOT=${pos[0]}
+        return
+    fi
+
+    if [[ $CPYX_ACTION == restore ]]; then
+        if (( ${#pos[@]} != 2 )); then
+            ui::die "$EX_USAGE" "--restore requiere ORIGEN(SNAPSHOT) y DESTINO. Usa '${CPYX_NAME} --help' para ver la ayuda."
+        fi
+        CPYX_SRC=${pos[0]}
+        CPYX_DST=${pos[1]}
+        if [[ -d $CPYX_SRC && $CPYX_SRC == */ ]]; then
+            CPYX_SRC="${CPYX_SRC%/}"
+        fi
+        if [[ -n $CPYX_BWLIMIT ]]; then
+            if ! [[ $CPYX_BWLIMIT =~ ^[0-9]+[kKmMgG]?$ ]]; then
+                ui::die "$EX_USAGE" "--bwlimit debe ser un valor como 1000, 2M, 500k"
+            fi
+        fi
         return
     fi
 

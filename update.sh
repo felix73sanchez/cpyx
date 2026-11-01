@@ -59,7 +59,11 @@ confirm() {
 }
 
 get_version() {
-    sed -n 's/^readonly CPYX_VERSION="\([^"]*\)".*/\1/p' "$ROOT/lib/cpyx/core.sh"
+    if [ -f "$ROOT/lib/cpyx/core.sh" ]; then
+        sed -n 's/^readonly CPYX_VERSION="\([^"]*\)".*/\1/p' "$ROOT/lib/cpyx/core.sh"
+    elif [ -f "$ROOT/core.sh" ]; then
+        sed -n 's/^readonly CPYX_VERSION="\([^"]*\)".*/\1/p' "$ROOT/core.sh"
+    fi
 }
 
 detect_prefix() {
@@ -129,8 +133,8 @@ reinstall() {
 }
 
 # ---- Preconditions -----------------------------------------------------------
-[ -f "$ROOT/lib/cpyx/core.sh" ] || fail "lib/cpyx/core.sh not found next to updater ($ROOT)."
-[ -f "$ROOT/install.sh" ]        || fail "install.sh not found next to updater ($ROOT)."
+[ -f "$ROOT/lib/cpyx/core.sh" ] || [ -f "$ROOT/core.sh" ] || fail "lib/cpyx/core.sh not found next to updater ($ROOT)."
+[ -f "$ROOT/install.sh" ]        || [ -f "$ROOT/../install.sh" ] || fail "install.sh not found next to updater ($ROOT)."
 
 has_command git || fail "git is required to update $NAME."
 git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 \

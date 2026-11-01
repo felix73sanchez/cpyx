@@ -33,6 +33,10 @@ report::header() {
         if (( CPYX_BACKUP_KEEP )); then
             ui::kv "Rotación" "conservar últimos $CPYX_BACKUP_KEEP"
         fi
+    elif (( CPYX_RESTORE_MODE )); then
+        ui::kv "Modo"     "${C_GREEN}RESTAURAR DESDE SNAPSHOT${C_RESET}"
+        ui::kv "Origen"   "$CPYX_SRC"
+        ui::kv "Destino"  "$CPYX_DST"
     else
         ui::kv "Origen"  "$CPYX_SRC"
         ui::kv "Destino" "$CPYX_DST"
@@ -45,13 +49,16 @@ report::header() {
         ui::kv "Log" "$CPYX_LOG_FILE"
     fi
 
-    if (( ! CPYX_BACKUP_MODE )); then
+    if (( ! CPYX_BACKUP_MODE && ! CPYX_RESTORE_MODE )); then
         if (( CPYX_DRY_RUN )); then
             ui::kv "Modo" "${C_YELLOW}SIMULACIÓN (no se copia nada)${C_RESET}"
         fi
         if (( CPYX_DELETE )); then
             ui::kv "Modo" "${C_RED}--delete activo (se borra en destino lo que no esté en origen)${C_RESET}"
         fi
+    fi
+    if (( CPYX_RESTORE_MODE && CPYX_DRY_RUN )); then
+        ui::kv "Modo" "${C_YELLOW}SIMULACIÓN (no se copia nada)${C_RESET}"
     fi
     if (( ${#CPYX_EXCLUDES[@]} )); then
         ui::kv "Excluye" "$(IFS=,; printf '%s' "${CPYX_EXCLUDES[*]}")"
