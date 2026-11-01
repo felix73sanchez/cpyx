@@ -1,8 +1,7 @@
 # cpyx
 
 Copia archivos entre rutas con `rsync`, mostrando barra de progreso global,
-detalle de cada archivo, estadísticas y un log. Funciona en cualquier Linux con
-`bash` y `rsync`.
+detalle de cada archivo, estadísticas y un log. Soporta **backups incrementales con hardlinks**. Funciona en cualquier Linux con `bash` y `rsync`.
 
 ## Instalación
 
@@ -14,13 +13,14 @@ detalle de cada archivo, estadísticas y un log. Funciona en cualquier Linux con
 ```
 
 El instalador detecta tu gestor de paquetes (pacman, apt, dnf, yum, zypper, apk,
-xbps, emerge, nix) e instala `rsync` y `bash` si faltan. También instala el
+xbps, emerge, nix) e instala `rsync`, `bash` y `pv` si faltan. También instala el
 autocompletado para bash, zsh y fish.
 
 ## Uso
 
 ```bash
 cpyx [opciones] ORIGEN DESTINO
+cpyx [opciones] ORIGEN DESTINO -b [--keep N]
 ```
 
 | Opción | Descripción |
@@ -31,21 +31,62 @@ cpyx [opciones] ORIGEN DESTINO
 | `-x`, `--exclude PAT` | Excluir patrón (repetible) |
 | `-l`, `--log ARCHIVO` | Guardar el log en ARCHIVO |
 | `-L`, `--no-log` | No guardar log |
-| `-V`, `--version` | Versión |
+| `-b`, `--backup` | Modo backup incremental con hardlinks (DESTINO es raíz de snapshots) |
+| `--keep N` | En modo backup, conservar solo los últimos N snapshots |
+| `-u`, `--update` | Actualizar cpyx a la última versión |
+| `-v`, `-V`, `--version` | Mostrar la versión |
 | `-h`, `--help` | Ayuda |
 
-Las opciones cortas se pueden agrupar (`-ndy`). Se admite `--` para rutas que
-empiezan con guion.
+Las opciones cortas se pueden agrupar (`-ndy`, `-uv`, etc.). Se admite `--` para rutas que empiezan con guion.
 
 ```bash
 cpyx ~/docs /mnt/backup/docs
 cpyx -n -x '*.log' -x .git /var/www /mnt/backup/www
+cpyx ~/Documentos /mnt/backups --backup --keep 7
 cpyx usuario@servidor:/datos /mnt/local/datos
 ```
 
 El origen se copia siempre como directorio completo (con todo su contenido dentro de
 una carpeta del mismo nombre en el destino). Una barra `/` final en el origen se
 ignora automáticamente.
+
+## Backups incrementales
+
+Con `--backup`, `DESTINO` se usa como raíz de snapshots. Cada ejecución crea un nuevo snapshot con marca de tiempo:
+
+```text
+/mnt/backups/
+├── 2026-11-01_14-30-22/
+├── 2026-11-01_18-45-10/
+├── 2026-11-02_09-12-03/
+└── latest -> 2026-11-02_09-12-03
+```
+
+- Los archivos sin cambios se crean con **hardlinks** al snapshot anterior (`rsync --link-dest`)
+- En modo backup se usa `--delete` automáticamente para que el snapshot sea un espejo exacto del origen
+- Con `--keep N` se borran los snapshots más antiguos tras un backup exitoso
+- Los hardlinks solo funcionan en el **mismo filesystem**. Si `latest` está en otro filesystem, se hace copia completa con aviso
+- Solo se soportan **rutas locales** en modo backup
+
+## Actualización
+
+```bash
+cpyx --update        # Actualiza desde el repositorio
+cpyx -u --yes        # Sin confirmación
+```
+
+## Códigos de salida
+
+| Código | Significado |
+|---|---|
+| 0 | Éxito |
+| 1 | Cancelado por el usuario |
+| 64 | Uso incorrecto |
+| 66 | El origen no existe |
+| 69 | Falta una dependencia |
+| 73 | No se pudo crear el destino |
+| 130 | Interrumpido (Ctrl+C) |
+| otro | Código de error de rsync |
 
 ## Códigos de salida
 
@@ -75,12 +116,15 @@ lib/cpyx/
   log.sh            Ubicación, creación y rotación de logs
   args.sh           Ayuda y análisis de argumentos
   validate.sh       Dependencias, rutas y confirmaciones
-  rsync.sh          Construcción de argumentos y ejecución
+  rsync.sh          Construcción de argumentos, ejecución y backups incrementales
+  progress.sh       Barra de progreso visual con hardlinks/rsync
   report.sh         Resumen previo y resultado final
   main.sh           Orquestación del flujo
 completions/        Autocompletado (bash, zsh, fish)
 tests/run.sh        Pruebas
 install.sh          Instalador / desinstalador
+uninstall.sh        Desinstalador independiente
+update.sh           Actualizador incremental vía git + rsync
 ```
 
 ## Autocompletado
