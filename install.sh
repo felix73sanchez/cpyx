@@ -159,6 +159,8 @@ ejecutar install -m 0755 "$RAIZ/bin/$NOMBRE" "$BIN/$NOMBRE"
 for f in "$RAIZ/lib/$NOMBRE"/*.sh; do
     ejecutar install -m 0644 "$f" "$LIB/$(basename "$f")"
 done
+[ -f "$RAIZ/update.sh" ] && ejecutar install -m 0755 "$RAIZ/update.sh" "$LIB/update.sh"
+[ -f "$RAIZ/uninstall.sh" ] && ejecutar install -m 0755 "$RAIZ/uninstall.sh" "$LIB/uninstall.sh"
 ejecutar install -m 0644 "$RAIZ/completions/$NOMBRE.bash" "$BASHC/$NOMBRE"
 ejecutar install -m 0644 "$RAIZ/completions/$NOMBRE.fish" "$FISHC/$NOMBRE.fish"
 ejecutar install -m 0644 "$RAIZ/completions/_$NOMBRE" "$ZSHC/_$NOMBRE"

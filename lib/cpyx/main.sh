@@ -16,8 +16,11 @@ main::self_update() {
     local updater=""
     local -a candidates=(
         "$BIN_DIR/../update.sh"
-        "$(dirname "${LIBDIR:-}")/../update.sh"
-        "$HOME/Documentos/cpy-sh/cpyx/update.sh"
+        "${LIBDIR:-}/update.sh"
+        "$(dirname "${LIBDIR:-}")/update.sh"
+        "$HOME/.local/lib/cpyx/update.sh"
+        "/usr/local/lib/cpyx/update.sh"
+        "/usr/lib/cpyx/update.sh"
         "$HOME/.local/share/cpyx/update.sh"
         "/usr/local/share/cpyx/update.sh"
     )
@@ -29,7 +32,7 @@ main::self_update() {
         fi
     done
     if [[ -z $updater ]]; then
-        ui::die "$EX_UNAVAILABLE" "No se encontró update.sh. Clona el repo y ejecuta ./update.sh manualmente."
+        ui::die "$EX_UNAVAILABLE" "No se encontró update.sh. Clona el repositorio y ejecuta ./update.sh manualmente."
     fi
     ui::note "Actualizando con: $updater"
     exec bash "$updater" "$@"
