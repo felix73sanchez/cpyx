@@ -11,6 +11,15 @@ versionado según [SemVer](https://semver.org/lang/es/).
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
 
+## [1.1.9] - 2026-11-01
+
+### Añadido
+- `-X, --exclude-from`: leer patrones de exclusión desde archivo
+- `--bwlimit`: limitar ancho de banda de rsync
+- Bloqueo con lock file para evitar ejecuciones concurrentes
+- Comprobación de espacio libre en disco antes de copiar
+- Completions actualizados para bash/zsh/fish
+
 ## [1.1.8] - 2026-11-01
 
 ### Corregido
