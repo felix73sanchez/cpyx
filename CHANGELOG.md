@@ -11,6 +11,12 @@ versionado según [SemVer](https://semver.org/lang/es/).
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
 
+## [1.1.8] - 2026-11-01
+
+### Corregido
+- `cpyx -u` ahora funciona desde cualquier instalación (busca `update.sh` en rutas estándar)
+- `install.sh` copia `update.sh` y `uninstall.sh` a la instalación
+
 ## [1.1.7] - 2026-11-01
 
 ### Añadido
