@@ -10,10 +10,16 @@ _arguments -s -S \
   '(-y --yes)'{-y,--yes}'[No pedir confirmación]' \
   '*-x+[Excluir patrón]:patrón:' \
   '*--exclude=[Excluir patrón]:patrón:' \
+  '*-X+[Leer exclusiones desde archivo]:archivo:_files' \
+  '*--exclude-from=[Leer exclusiones desde archivo]:archivo:_files' \
   '(-l --log -L --no-log)-l+[Guardar el log en ARCHIVO]:archivo de log:_files' \
   '(-l --log -L --no-log)--log=[Guardar el log en ARCHIVO]:archivo de log:_files' \
   '(-l --log -L --no-log)'{-L,--no-log}'[No guardar log]' \
-  '(- *)'{-V,--version}'[Mostrar la versión]' \
+  '(-b --backup)'{-b,--backup}'[Modo backup incremental con hardlinks]' \
+  '--keep[Conservar últimos N snapshots]:número:' \
+  '--bwlimit[Limitar ancho de banda]:velocidad:' \
+  '(-u --update)'{-u,--update}'[Actualizar cpyx]' \
+  '(- *)'{-v,-V,--version}'[Mostrar la versión]' \
   '(- *)'{-h,--help}'[Mostrar la ayuda]' \
   '1:origen:_files' \
   '2:destino:_files -/'

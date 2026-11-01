@@ -24,6 +24,7 @@ rsync::build_args() {
         fi
         if (( CPYX_DRY_RUN )); then CPYX_RSYNC_ARGS+=(--dry-run); fi
         CPYX_RSYNC_ARGS+=(--delete)
+        [[ -n $CPYX_BWLIMIT ]] && CPYX_RSYNC_ARGS+=(--bwlimit="$CPYX_BWLIMIT")
         # Buscar snapshot previo vía symlink latest/
         if [[ -L $CPYX_BACKUP_LATEST || -d $CPYX_BACKUP_LATEST ]]; then
             local link_target latest_real snap_real
@@ -57,6 +58,7 @@ rsync::build_args() {
 
     if (( CPYX_DRY_RUN )); then CPYX_RSYNC_ARGS+=(--dry-run); fi
     if (( CPYX_DELETE ));  then CPYX_RSYNC_ARGS+=(--delete);  fi
+    [[ -n $CPYX_BWLIMIT ]] && CPYX_RSYNC_ARGS+=(--bwlimit="$CPYX_BWLIMIT")
 
     local pat
     for pat in ${CPYX_EXCLUDES[@]+"${CPYX_EXCLUDES[@]}"}; do

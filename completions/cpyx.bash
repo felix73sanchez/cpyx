@@ -7,11 +7,11 @@ _cpyx() {
     local cur prev opts
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="-n --dry-run -d --delete -y --yes -x --exclude -l --log -L --no-log -V --version -h --help"
+    opts="-n --dry-run -d --delete -y --yes -x --exclude -X --exclude-from -l --log -L --no-log -b --backup --keep --bwlimit -u --update -v -V --version -h --help"
 
     case "$prev" in
-        -l|--log) mapfile -t COMPREPLY < <(compgen -f -- "$cur"); return ;;
-        -x|--exclude) return ;;
+        -l|--log|-X|--exclude-from) mapfile -t COMPREPLY < <(compgen -f -- "$cur"); return ;;
+        -x|--exclude|--keep|--bwlimit) return ;;
     esac
 
     if [[ $cur == -* ]]; then

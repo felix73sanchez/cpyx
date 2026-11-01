@@ -21,11 +21,14 @@ ${C_BOLD}Opciones:${C_RESET}
   -d, --delete        Borra en el destino lo que no exista en el origen
   -y, --yes           No pedir confirmación (necesario con --delete sin terminal)
   -x, --exclude PAT   Excluir patrón (repetible: -x '*.tmp' -x node_modules)
+  -X, --exclude-from ARCHIVO
+                      Leer patrones de exclusión desde archivo
   -l, --log ARCHIVO   Guardar el log en ARCHIVO
                       (por defecto: \${XDG_STATE_HOME:-~/.local/state}/cpyx/FECHA.log)
   -L, --no-log        No guardar log
   -b, --backup        Modo backup incremental con hardlinks (usa DESTINO como raíz)
   --keep N            En modo backup, conservar solo los últimos N snapshots
+  --bwlimit RATE      Limitar ancho de banda (K,M,G). Ej: --bwlimit=2M
   -u, --update        Actualizar cpyx a la última versión desde el repositorio
   -V, --version       Mostrar la versión
   -h, --help          Mostrar esta ayuda
@@ -49,13 +52,29 @@ ${C_BOLD}Entorno:${C_RESET}
 EOF
 }
 
-# Guarda el valor de una opción que lo requiere (-x / -l / --keep)
+# Guarda el valor de una opción que lo requiere (-x / -l / -X / --keep / --bwlimit)
 args::_set_value() {
     case $1 in
-        -x|--exclude) CPYX_EXCLUDES+=("$2") ;;
-        -l|--log)     CPYX_LOG_FILE=$2 ;;
-        --keep)       CPYX_BACKUP_KEEP=$2 ;;
+        -x|--exclude)      CPYX_EXCLUDES+=("$2") ;;
+        -X|--exclude-from) args::_load_excludes_from "$2" ;;
+        -l|--log)          CPYX_LOG_FILE=$2 ;;
+        --keep)            CPYX_BACKUP_KEEP=$2 ;;
+        --bwlimit)         CPYX_BWLIMIT=$2 ;;
     esac
+}
+
+args::_load_excludes_from() {
+    local file=$1
+    [[ -f $file ]] || ui::die "$EX_NOINPUT" "Archivo de exclusiones no existe: $file"
+    [[ -r $file ]] || ui::die "$EX_USAGE" "Sin permiso de lectura: $file"
+    local line
+    while IFS= read -r line || [[ -n $line ]]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z $line ]] && continue
+        [[ $line == \#* ]] && continue
+        CPYX_EXCLUDES+=("$line")
+    done < "$file"
 }
 
 # args::parse "$@" - rellena las variables CPYX_*
@@ -75,9 +94,9 @@ args::parse() {
             --no-log)   CPYX_NO_LOG=1 ;;
             -b|--backup) CPYX_BACKUP_MODE=1 ;;
             -u|--update) CPYX_ACTION=update ;;
-            --exclude=*|--log=*|--keep=*)
+            --exclude=*|--log=*|--keep=*|--bwlimit=*|--exclude-from=*)
                 args::_set_value "${arg%%=*}" "${arg#*=}" ;;
-            --exclude|--log|--keep)
+            --exclude|--log|--keep|--bwlimit|--exclude-from)
                 (( $# )) || ui::die "$EX_USAGE" "La opción $arg requiere un argumento"
                 args::_set_value "$arg" "$1"; shift ;;
             --*)
@@ -95,6 +114,15 @@ args::parse() {
                         y) CPYX_ASSUME_YES=1 ;;
                         L) CPYX_NO_LOG=1 ;;
                         b) CPYX_BACKUP_MODE=1 ;;
+                        X) 
+                            if [[ -n $cluster ]]; then
+                                val=$cluster; cluster=""
+                            elif (( $# )); then
+                                val=$1; shift
+                            else
+                                ui::die "$EX_USAGE" "La opción -X requiere un argumento"
+                            fi
+                            args::_set_value "-X" "$val" ;;
                         x|l)
                             if [[ -n $cluster ]]; then
                                 val=$cluster; cluster=""
@@ -128,6 +156,11 @@ args::parse() {
         if (( CPYX_BACKUP_KEEP )); then
             if ! [[ $CPYX_BACKUP_KEEP =~ ^[1-9][0-9]*$ ]]; then
                 ui::die "$EX_USAGE" "--keep requiere un número entero positivo"
+            fi
+        fi
+        if [[ -n $CPYX_BWLIMIT ]]; then
+            if ! [[ $CPYX_BWLIMIT =~ ^[0-9]+[kKmMgG]?$ ]]; then
+                ui::die "$EX_USAGE" "--bwlimit debe ser un valor como 1000, 2M, 500k"
             fi
         fi
     fi

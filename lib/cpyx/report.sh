@@ -14,6 +14,9 @@ report::fmt_duration() {
 report::header() {
     ui::banner "CPYX $CPYX_VERSION - fsxsystem"
 
+report::header() {
+    ui::banner "CPYX $CPYX_VERSION - fsxsystem"
+
     if (( CPYX_BACKUP_MODE )); then
         ui::kv "Modo"     "${C_CYAN}BACKUP INCREMENTAL${C_RESET}"
         ui::kv "Origen"   "$CPYX_SRC"
@@ -56,6 +59,7 @@ report::header() {
     if (( ${#CPYX_EXCLUDES[@]} )); then
         ui::kv "Excluye" "$(IFS=,; printf '%s' "${CPYX_EXCLUDES[*]}")"
     fi
+    [[ -n $CPYX_BWLIMIT ]] && ui::kv "Velocidad" "limitada a $CPYX_BWLIMIT"
     if (( ! CPYX_RSYNC_MODERN )); then
         ui::warn "rsync ${CPYX_RSYNC_VERSION:-desconocido} es antiguo: progreso por archivo en vez de global."
     fi

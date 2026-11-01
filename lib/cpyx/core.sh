@@ -47,6 +47,7 @@ core::reset_config() {
     CPYX_BACKUP_ROOT=""      # raíz de backups (igual que DESTINO)
     CPYX_BACKUP_SNAPSHOT=""  # snapshot actual (DESTINO/FECHA-HORA)
     CPYX_BACKUP_LATEST=""    # enlace latest
+    CPYX_BWLIMIT=""          # límite de ancho de banda para rsync
 }
 
 # Genera timestamp para nombre de snapshot: YYYY-MM-DD_HH-MM-SS
