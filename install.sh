@@ -161,6 +161,10 @@ for f in "$RAIZ/lib/$NOMBRE"/*.sh; do
 done
 [ -f "$RAIZ/update.sh" ] && ejecutar install -m 0755 "$RAIZ/update.sh" "$LIB/update.sh"
 [ -f "$RAIZ/uninstall.sh" ] && ejecutar install -m 0755 "$RAIZ/uninstall.sh" "$LIB/uninstall.sh"
+if [ -f "$RAIZ/man/$NOMBRE.1" ]; then
+    ejecutar mkdir -p "$DESTDIR$PREFIX/share/man/man1"
+    ejecutar install -m 0644 "$RAIZ/man/$NOMBRE.1" "$DESTDIR$PREFIX/share/man/man1/$NOMBRE.1"
+fi
 ejecutar install -m 0644 "$RAIZ/completions/$NOMBRE.bash" "$BASHC/$NOMBRE"
 ejecutar install -m 0644 "$RAIZ/completions/$NOMBRE.fish" "$FISHC/$NOMBRE.fish"
 ejecutar install -m 0644 "$RAIZ/completions/_$NOMBRE" "$ZSHC/_$NOMBRE"

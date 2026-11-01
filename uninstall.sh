@@ -80,7 +80,8 @@ for p in $PREFIXES; do
     for target in "$DESTDIR$p/bin/$NAME" "$DESTDIR$p/lib/$NAME" \
                   "$DESTDIR$p/share/bash-completions/completions/$NAME" \
                   "$DESTDIR$p/share/fish/vendor_completions.d/$NAME.fish" \
-                  "$DESTDIR$p/share/zsh/site-functions/_$NAME"; do
+                  "$DESTDIR$p/share/zsh/site-functions/_$NAME" \
+                  "$DESTDIR$p/share/man/man1/$NAME.1"; do
         if [ -e "$target" ]; then
             FOUND=1
             found_prefix=1

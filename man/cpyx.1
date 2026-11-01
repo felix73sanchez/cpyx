@@ -1,0 +1,98 @@
+.TH CPYX 1 "2026-11-01" "cpyx 1.2.4" "Manual de usuario"
+.SH NOMBRE
+cpyx \- Copiador con backups incrementales y hardlinks
+.SH SINOPSIS
+.B cpyx
+[\fIOPCIONES\fR] \fIORIGEN\fR \fIDESTINO\fR
+.br
+.B cpyx
+\fIOPCIONES\fR \fIORIGEN\fR \fIDESTINO\fR \fB-b\fR [\fB--keep\fR \fIN\fR]
+.br
+.B cpyx
+\fB-r\fR|\fB--restore\fR \fISNAPSHOT\fR \fIDESTINO\fR
+.br
+.B cpyx
+\fB--backup-list\fR \fIRAIZ\fR
+.br
+.B cpyx
+\fB-u\fR|\fB--update\fR
+.SH DESCRIPCIÓN
+.B cpyx
+copia archivos entre rutas mostrando barra de progreso, velocidad, ETA y log detallado.
+Soporta backups incrementales con hardlinks, restauración, rotación por política y límite de ancho de banda.
+.SH OPCIONES
+.TP
+.B \-n, \-\-dry\-run
+Simulación sin escribir nada.
+.TP
+.B \-d, \-\-delete
+Sincroniza borrando lo que no exista en origen.
+.TP
+.B \-y, \-\-yes
+No pedir confirmación.
+.TP
+.B \-x, \-\-exclude \fIPATRÓN\fR
+Excluir patrón (repetible).
+.TP
+.B \-X, \-\-exclude\-from \fIARCHIVO\fR
+Leer exclusiones desde archivo.
+.TP
+.B \-l, \-\-log \fIARCHIVO\fR
+Guardar log en archivo.
+.TP
+.B \-L, \-\-no\-log
+No guardar log.
+.TP
+.B \-q, \-\-quiet
+Silenciar salida informativa.
+.TP
+.B \-b, \-\-backup
+Modo backup incremental con hardlinks. DESTINO es la raíz de snapshots.
+.TP
+.B \-\-backup\-list \fIRAIZ\fR
+Listar snapshots de una raíz de backups.
+.TP
+.B \-r, \-\-restore \fISNAPSHOT\fR \fIDESTINO\fR
+Restaurar desde snapshot o symlink latest.
+.TP
+.B \-\-keep \fIN\fR
+Conservar solo los últimos N snapshots.
+.TP
+.B \-\-keep\-daily \fIN\fR, \-\-keep\-weekly \fIN\fR, \-\-keep\-monthly \fIN\fR
+Rotación por política.
+.TP
+.B \-\-bwlimit \fIRATE\fR
+Limitar ancho de banda (ej. 2M, 500k).
+.TP
+.B \-u, \-\-update
+Actualizar cpyx desde el repositorio.
+.TP
+.B \-v, \-V, \-\-version
+Mostrar versión.
+.TP
+.B \-h, \-\-help
+Mostrar ayuda.
+.SH ARCHIVOS
+.TP
+.I ~/.config/cpyx/config
+Fichero de configuración con valores por defecto.
+.TP
+.I ~/.local/state/cpyx/
+Directorio de logs por defecto.
+.SH EJEMPLOS
+.TP
+Copiar documentos:
+.B cpyx ~/Documentos /mnt/backup/Documentos
+.TP
+Backup incremental con rotación:
+.B cpyx ~/Documentos /mnt/backups --backup --keep 7
+.TP
+Restaurar desde último snapshot:
+.B cpyx --restore /mnt/backups/latest/Documentos ~/Documentos-restaurados
+.TP
+Listar snapshots:
+.B cpyx --backup-list /mnt/backups
+.SH AUTOR
+Felix Sanchez <felixsanchez73@outlook.com>
+.SH LICENCIA
+GPL-3.0-or-later
