@@ -1,7 +1,15 @@
 # cpyx
 
-Copia archivos entre rutas con `rsync`, mostrando barra de progreso global,
-detalle de cada archivo, estadísticas y un log. Soporta **backups incrementales con hardlinks**. Funciona en cualquier Linux con `bash` y `rsync`.
+Copiador rápido y seguro con barras de progreso, logs detallados y **copias incrementales con hardlinks**.
+
+Ideal para mover archivos entre discos, crear backups con ahorro de espacio o sincronizar carpetas sin complicarte con comandos complejos.
+
+## ¿Para qué sirve?
+
+- **Copia normal** — Copia carpetas completas con seguimiento visual, velocidad, ETA y resumen al finalizar
+- **Backup incremental** — Crea snapshots diarios/por ejecución con hardlinks. Si no cambia un archivo, no se duplica, se enlaza
+- **Seguro** — Comprobación de espacio, bloqueo contra ejecuciones simultáneas, confirmación antes de borrar
+- **Práctico** — Exclusiones, límite de velocidad, logs automáticos, rotación de backups
 
 ## Instalación
 
@@ -12,47 +20,50 @@ detalle de cada archivo, estadísticas y un log. Soporta **backups incrementales
 ./install.sh --uninstall
 ```
 
-El instalador detecta tu gestor de paquetes (pacman, apt, dnf, yum, zypper, apk,
-xbps, emerge, nix) e instala `rsync`, `bash` y `pv` si faltan. También instala el
-autocompletado para bash, zsh y fish.
+El instalador detecta automáticamente las dependencias necesarias e instala lo que falte con tu gestor de paquetes.
 
-## Uso
+## Uso rápido
 
 ```bash
-cpyx [opciones] ORIGEN DESTINO
-cpyx [opciones] ORIGEN DESTINO -b [--keep N]
+# Copia normal
+cpyx ~/Documentos /mnt/backup/Documentos
+
+# Backup incremental con rotación (conservar últimos 7)
+cpyx ~/Documentos /mnt/backups --backup --keep 7
+
+# Simular sin copiar nada
+cpyx ~/Documentos /mnt/backup/Documentos --dry-run
+
+# Ver snapshots guardados
+cpyx --backup-list /mnt/backups
 ```
+
+## Opciones principales
 
 | Opción | Descripción |
 |---|---|
-| `-n`, `--dry-run` | Simulación: no copia nada |
-| `-d`, `--delete` | Borra en destino lo que no exista en origen (pide confirmación) |
+| `-n`, `--dry-run` | Simular copia sin escribir nada |
+| `-d`, `--delete` | Sincronizar destino borrando lo que ya no existe en origen |
 | `-y`, `--yes` | No pedir confirmación |
-| `-x`, `--exclude PAT` | Excluir patrón (repetible) |
-| `-l`, `--log ARCHIVO` | Guardar el log en ARCHIVO |
-| `-L`, `--no-log` | No guardar log |
-| `-b`, `--backup` | Modo backup incremental con hardlinks (DESTINO es raíz de snapshots) |
-| `--keep N` | En modo backup, conservar solo los últimos N snapshots |
-| `-u`, `--update` | Actualizar cpyx a la última versión |
-| `-v`, `-V`, `--version` | Mostrar la versión |
-| `-h`, `--help` | Ayuda |
+| `-x`, `--exclude PAT` | Excluir archivos o carpetas |
+| `-X`, `--exclude-from ARCHIVO` | Excluir desde un archivo |
+| `-l`, `--log ARCHIVO` | Guardar registro detallado |
+| `-L`, `--no-log` | No guardar registro |
+| `-q`, `--quiet` | Modo silencioso (ideal para scripts/cron) |
+| `-b`, `--backup` | Crear snapshot incremental con hardlinks |
+| `--backup-list` | Listar snapshots existentes |
+| `--keep N` | Conservar solo los últimos N snapshots |
+| `--keep-daily N` / `--keep-weekly N` / `--keep-monthly N` | Rotación por política |
+| `--bwlimit RATE` | Limitar velocidad (ej: `2M`, `500k`) |
+| `-u`, `--update` | Actualizar a la última versión |
+| `-v`, `-V`, `--version` | Ver versión |
+| `-h`, `--help` | Ver ayuda completa |
 
-Las opciones cortas se pueden agrupar (`-ndy`, `-uv`, etc.). Se admite `--` para rutas que empiezan con guion.
-
-```bash
-cpyx ~/docs /mnt/backup/docs
-cpyx -n -x '*.log' -x .git /var/www /mnt/backup/www
-cpyx ~/Documentos /mnt/backups --backup --keep 7
-cpyx usuario@servidor:/datos /mnt/local/datos
-```
-
-El origen se copia siempre como directorio completo (con todo su contenido dentro de
-una carpeta del mismo nombre en el destino). Una barra `/` final en el origen se
-ignora automáticamente.
+Las opciones cortas se pueden agrupar (`-ndy`). Usa `--` para rutas que empiecen con guion.
 
 ## Backups incrementales
 
-Con `--backup`, `DESTINO` se usa como raíz de snapshots. Cada ejecución crea un nuevo snapshot con marca de tiempo:
+Cuando usas `--backup`, cpyx guarda cada copia como un snapshot independiente con su fecha:
 
 ```text
 /mnt/backups/
@@ -62,100 +73,18 @@ Con `--backup`, `DESTINO` se usa como raíz de snapshots. Cada ejecución crea u
 └── latest -> 2026-11-02_09-12-03
 ```
 
-- Los archivos sin cambios se crean con **hardlinks** al snapshot anterior (`rsync --link-dest`)
-- En modo backup se usa `--delete` automáticamente para que el snapshot sea un espejo exacto del origen
-- Con `--keep N` se borran los snapshots más antiguos tras un backup exitoso
-- Los hardlinks solo funcionan en el **mismo filesystem**. Si `latest` está en otro filesystem, se hace copia completa con aviso
-- Solo se soportan **rutas locales** en modo backup
+Los archivos sin cambios usan **hardlinks** con el snapshot anterior. Cada snapshot se puede explorar como si fuera una copia completa, pero ocupa mucho menos espacio.
 
 ## Actualización
 
 ```bash
-cpyx --update        # Actualiza desde el repositorio
-cpyx -u --yes        # Sin confirmación
+cpyx --update
 ```
 
-## Códigos de salida
+## Dependencias
 
-| Código | Significado |
-|---|---|
-| 0 | Éxito |
-| 1 | Cancelado por el usuario |
-| 64 | Uso incorrecto |
-| 66 | El origen no existe |
-| 69 | Falta una dependencia |
-| 73 | No se pudo crear el destino |
-| 130 | Interrumpido (Ctrl+C) |
-| otro | Código de error de rsync |
-
-## Códigos de salida
-
-| Código | Significado |
-|---|---|
-| 0 | Éxito |
-| 1 | Cancelado por el usuario |
-| 64 | Uso incorrecto |
-| 66 | El origen no existe |
-| 69 | Falta una dependencia |
-| 73 | No se pudo crear el destino |
-| 130 | Interrumpido (Ctrl+C) |
-| otro | Código de error de rsync |
+Solo necesita `bash`. El instalador se encarga de asegurar `rsync` (y opcionalmente `pv`) para el funcionamiento óptimo.
 
 ## Licencia
 
-Este proyecto se distribuye bajo la licencia **GNU General Public License v3.0 o posterior**
-(GPL-3.0-or-later). Consulta el archivo [LICENSE](LICENSE).
-
-## Estructura
-
-```
-bin/cpyx            Punto de entrada: carga módulos y llama a main()
-lib/cpyx/
-  core.sh           Constantes, códigos de salida, configuración por defecto
-  ui.sh             Colores y mensajes
-  log.sh            Ubicación, creación y rotación de logs
-  args.sh           Ayuda y análisis de argumentos
-  validate.sh       Dependencias, rutas y confirmaciones
-  rsync.sh          Construcción de argumentos, ejecución y backups incrementales
-  progress.sh       Barra de progreso visual con hardlinks/rsync
-  report.sh         Resumen previo y resultado final
-  main.sh           Orquestación del flujo
-completions/        Autocompletado (bash, zsh, fish)
-tests/run.sh        Pruebas
-install.sh          Instalador / desinstalador
-uninstall.sh        Desinstalador independiente
-update.sh           Actualizador incremental vía git + rsync
-```
-
-## Autocompletado
-
-El instalador deja los archivos en `share/`: `bash-completion/completions/cpyx`,
-`zsh/site-functions/_cpyx` y `fish/vendor_completions.d/cpyx.fish`.
-
-En zsh, con el prefijo `/usr` o `/usr/local` funciona solo (reinicia la shell).
-Con `~/.local` agrega esto a `~/.zshrc`, antes de `compinit`:
-
-```zsh
-fpath=(~/.local/share/zsh/site-functions $fpath)
-autoload -Uz compinit && compinit
-```
-
-## Entorno
-
-- `NO_COLOR`: desactiva los colores.
-- `CPYX_KEEP_LOGS`: logs que se conservan en el directorio por defecto (30).
-- `CPYX_PROGRESS`: `0` desactiva la barra de progreso (por defecto `1`).
-- `CPYX_LIBDIR`: ruta alternativa a la biblioteca de módulos.
-- Los logs van a `${XDG_STATE_HOME:-~/.local/state}/cpyx/`.
-
-## Versionado
-
-Usa [SemVer](https://semver.org/lang/es/) (`MAYOR.MENOR.PARCHE`). La versión vive en
-`lib/cpyx/core.sh` (`CPYX_VERSION`) y cada versión publicada lleva un tag `vX.Y.Z`.
-Los cambios se registran en `CHANGELOG.md`.
-
-## Pruebas
-
-```bash
-bash tests/run.sh
-```
+GPL-3.0-or-later
