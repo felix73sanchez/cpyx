@@ -93,6 +93,19 @@ validate::paths() {
     if core::is_remote "$CPYX_SRC"; then src_remote=1; fi
     if core::is_remote "$CPYX_DST"; then dst_remote=1; fi
 
+    if (( CPYX_BACKUP_MODE )); then
+        if (( src_remote || dst_remote )); then
+            ui::die "$EX_USAGE" "El modo backup (--backup) solo soporta rutas locales por ahora"
+        fi
+        if [[ ! -d $CPYX_SRC ]]; then
+            ui::die "$EX_NOINPUT" "El origen debe ser un directorio en modo backup: $CPYX_SRC"
+        fi
+        CPYX_BACKUP_ROOT=$CPYX_DST
+        CPYX_BACKUP_LATEST="$CPYX_DST/latest"
+        CPYX_BACKUP_SNAPSHOT="$CPYX_DST/$(core::backup_timestamp)"
+        return
+    fi
+
     if (( ! src_remote )) && [[ ! -e $CPYX_SRC ]]; then
         ui::die "$EX_NOINPUT" "El origen no existe: $CPYX_SRC"
     fi

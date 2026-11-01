@@ -7,7 +7,7 @@
 # =============================================================================
 
 readonly CPYX_NAME="cpyx"
-readonly CPYX_VERSION="1.1.5"
+readonly CPYX_VERSION="1.1.6"
 
 # Códigos de salida (convención sysexits.h)
 readonly EX_USAGE=64        # uso incorrecto de la línea de comandos
@@ -42,6 +42,30 @@ core::reset_config() {
     CPYX_TOTAL_BYTES=0       # tamaño total de la copia (origen local)
     CPYX_TOTAL_FILES=0       # nº de archivos de la copia (origen local)
     CPYX_TMPFILES=()         # temporales a borrar al salir
+    CPYX_BACKUP_MODE=0       # 1 = modo backup incremental
+    CPYX_BACKUP_KEEP=0       # número de snapshots a conservar (0 = sin rotación)
+    CPYX_BACKUP_ROOT=""      # raíz de backups (igual que DESTINO)
+    CPYX_BACKUP_SNAPSHOT=""  # snapshot actual (DESTINO/FECHA-HORA)
+    CPYX_BACKUP_LATEST=""    # enlace latest
+}
+
+# Genera timestamp para nombre de snapshot: YYYY-MM-DD_HH-MM-SS
+core::backup_timestamp() {
+    date +%Y-%m-%d_%H-%M-%S
+}
+
+# Lista snapshots válidos (directorios con formato fecha) ordenados por nombre
+core::backup_list() {
+    local root=$1
+    [[ -d $root ]] || return 0
+    local d
+    for d in "$root"/*/; do
+        [[ -d $d ]] || continue
+        local base
+        base=$(basename "${d%/}")
+        [[ $base =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}$ ]] || continue
+        printf '%s\n' "$base"
+    done | sort
 }
 
 # ¿Es una ruta remota (host:ruta)? Igual que rsync: hay ":" antes de cualquier "/"

@@ -10,9 +10,20 @@ versionado según [SemVer](https://semver.org/lang/es/).
 
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
-- `args.sh`: origen con barra "/" final se normaliza para copiar siempre el directorio completo, no solo su contenido.
+
+## [1.1.6] - 2026-11-01
+
+### Añadido
+- Modo backup incremental con hardlinks: `-b, --backup`
+- Snapshots en `DESTINO/YYYY-MM-DD_HH-MM-SS/` con symlink `latest`
+- `--keep N` para rotación automática de snapshots antiguos
+- `--delete` automático en modo backup para espejo exacto
+- Verificación de mismo filesystem para hardlinks
 
 ## [1.1.5] - 2026-10-24
+
+### Modificado
+- `args.sh`: origen con barra "/" final se normaliza para copiar siempre el directorio completo, no solo su contenido.
 
 ### Corregido
 - `update.sh`: barra `/` faltante en rsync creaba directorio anidado `lib/lib/`.

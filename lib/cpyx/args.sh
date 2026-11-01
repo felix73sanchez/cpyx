@@ -14,6 +14,7 @@ ${C_BOLD}${CPYX_NAME} ${CPYX_VERSION}${C_RESET} - copia con rsync, barra de prog
 
 ${C_BOLD}Uso:${C_RESET}
   ${CPYX_NAME} [opciones] ORIGEN DESTINO
+  ${CPYX_NAME} [opciones] ORIGEN DESTINO -b [--keep N]
 
 ${C_BOLD}Opciones:${C_RESET}
   -n, --dry-run       Simulación: muestra qué se copiaría sin copiar nada
@@ -23,17 +24,22 @@ ${C_BOLD}Opciones:${C_RESET}
   -l, --log ARCHIVO   Guardar el log en ARCHIVO
                       (por defecto: \${XDG_STATE_HOME:-~/.local/state}/cpyx/FECHA.log)
   -L, --no-log        No guardar log
+  -b, --backup        Modo backup incremental con hardlinks (usa DESTINO como raíz)
+  --keep N            En modo backup, conservar solo los últimos N snapshots
   -V, --version       Mostrar la versión
   -h, --help          Mostrar esta ayuda
 
 ${C_BOLD}Ejemplos:${C_RESET}
   ${CPYX_NAME} ~/docs /mnt/backup/docs
   ${CPYX_NAME} -n -x '*.log' -x .git /var/www /mnt/backup/www
+  ${CPYX_NAME} ~/Documentos /mnt/backups --backup --keep 7
   ${CPYX_NAME} usuario@servidor:/datos /mnt/local/datos
 
-${C_BOLD}Nota:${C_RESET} el origen se copia siempre como directorio completo (con todo su
-contenido dentro de una carpeta del mismo nombre en el destino). Una barra "/" final
-en el origen se ignora automáticamente.
+${C_BOLD}Nota:${C_RESET}
+  Por defecto el origen se copia siempre como directorio completo (con todo su
+  contenido dentro de una carpeta del mismo nombre en el destino). Una barra "/" final
+  en el origen se ignora automáticamente.
+  En modo backup (--backup), DESTINO es la raíz de snapshots. Solo rutas locales soportadas.
 
 ${C_BOLD}Entorno:${C_RESET}
   NO_COLOR          Desactiva los colores
@@ -42,11 +48,12 @@ ${C_BOLD}Entorno:${C_RESET}
 EOF
 }
 
-# Guarda el valor de una opción que lo requiere (-x / -l)
+# Guarda el valor de una opción que lo requiere (-x / -l / --keep)
 args::_set_value() {
     case $1 in
         -x|--exclude) CPYX_EXCLUDES+=("$2") ;;
         -l|--log)     CPYX_LOG_FILE=$2 ;;
+        --keep)       CPYX_BACKUP_KEEP=$2 ;;
     esac
 }
 
@@ -65,9 +72,10 @@ args::parse() {
             --delete)   CPYX_DELETE=1 ;;
             --yes)      CPYX_ASSUME_YES=1 ;;
             --no-log)   CPYX_NO_LOG=1 ;;
-            --exclude=*|--log=*)
+            -b|--backup) CPYX_BACKUP_MODE=1 ;;
+            --exclude=*|--log=*|--keep=*)
                 args::_set_value "${arg%%=*}" "${arg#*=}" ;;
-            --exclude|--log)
+            --exclude|--log|--keep)
                 (( $# )) || ui::die "$EX_USAGE" "La opción $arg requiere un argumento"
                 args::_set_value "$arg" "$1"; shift ;;
             --*)
@@ -83,6 +91,7 @@ args::parse() {
                         d) CPYX_DELETE=1 ;;
                         y) CPYX_ASSUME_YES=1 ;;
                         L) CPYX_NO_LOG=1 ;;
+                        b) CPYX_BACKUP_MODE=1 ;;
                         x|l)
                             if [[ -n $cluster ]]; then
                                 val=$cluster; cluster=""
@@ -110,6 +119,13 @@ args::parse() {
         # no solo su contenido (más intuitivo que la convención de rsync)
         if [[ -d $CPYX_SRC && $CPYX_SRC == */ ]]; then
             CPYX_SRC="${CPYX_SRC%/}"
+        fi
+
+        # Validar --keep
+        if (( CPYX_BACKUP_KEEP )); then
+            if ! [[ $CPYX_BACKUP_KEEP =~ ^[1-9][0-9]*$ ]]; then
+                ui::die "$EX_USAGE" "--keep requiere un número entero positivo"
+            fi
         fi
     fi
 }

@@ -13,8 +13,30 @@ report::fmt_duration() {
 
 report::header() {
     ui::banner "CPYX $CPYX_VERSION - fsxsystem"
-    ui::kv "Origen"  "$CPYX_SRC"
-    ui::kv "Destino" "$CPYX_DST"
+
+    if (( CPYX_BACKUP_MODE )); then
+        ui::kv "Modo"     "${C_CYAN}BACKUP INCREMENTAL${C_RESET}"
+        ui::kv "Origen"   "$CPYX_SRC"
+        ui::kv "Raíz"     "$CPYX_BACKUP_ROOT"
+        if (( CPYX_DRY_RUN )); then
+            ui::kv "Snapshot" "(simulación, no se crea)"
+        else
+            ui::kv "Snapshot" "$CPYX_BACKUP_SNAPSHOT"
+        fi
+        if [[ -L $CPYX_BACKUP_LATEST ]]; then
+            ui::kv "latest"   "$(readlink -f "$CPYX_BACKUP_LATEST")"
+        elif [[ -d $CPYX_BACKUP_LATEST ]]; then
+            ui::kv "latest"   "$CPYX_BACKUP_LATEST"
+        else
+            ui::kv "latest"   "(ninguno - copia completa)"
+        fi
+        if (( CPYX_BACKUP_KEEP )); then
+            ui::kv "Rotación" "conservar últimos $CPYX_BACKUP_KEEP"
+        fi
+    else
+        ui::kv "Origen"  "$CPYX_SRC"
+        ui::kv "Destino" "$CPYX_DST"
+    fi
     ui::kv "Inicio"  "$(date '+%Y-%m-%d %H:%M:%S')"
 
     if (( CPYX_NO_LOG )); then
@@ -23,11 +45,13 @@ report::header() {
         ui::kv "Log" "$CPYX_LOG_FILE"
     fi
 
-    if (( CPYX_DRY_RUN )); then
-        ui::kv "Modo" "${C_YELLOW}SIMULACIÓN (no se copia nada)${C_RESET}"
-    fi
-    if (( CPYX_DELETE )); then
-        ui::kv "Modo" "${C_RED}--delete activo (se borra en destino lo que no esté en origen)${C_RESET}"
+    if (( ! CPYX_BACKUP_MODE )); then
+        if (( CPYX_DRY_RUN )); then
+            ui::kv "Modo" "${C_YELLOW}SIMULACIÓN (no se copia nada)${C_RESET}"
+        fi
+        if (( CPYX_DELETE )); then
+            ui::kv "Modo" "${C_RED}--delete activo (se borra en destino lo que no esté en origen)${C_RESET}"
+        fi
     fi
     if (( ${#CPYX_EXCLUDES[@]} )); then
         ui::kv "Excluye" "$(IFS=,; printf '%s' "${CPYX_EXCLUDES[*]}")"
