@@ -12,6 +12,29 @@ main::on_interrupt() {
     exit "$EX_INTERRUPT"
 }
 
+main::self_update() {
+    local updater=""
+    local -a candidates=(
+        "$BIN_DIR/../update.sh"
+        "$(dirname "${LIBDIR:-}")/../update.sh"
+        "$HOME/Documentos/cpy-sh/cpyx/update.sh"
+        "$HOME/.local/share/cpyx/update.sh"
+        "/usr/local/share/cpyx/update.sh"
+    )
+    local c
+    for c in "${candidates[@]}"; do
+        if [[ -f $c ]]; then
+            updater="$(readlink -f "$c")"
+            break
+        fi
+    done
+    if [[ -z $updater ]]; then
+        ui::die "$EX_UNAVAILABLE" "No se encontró update.sh. Clona el repo y ejecuta ./update.sh manualmente."
+    fi
+    ui::note "Actualizando con: $updater"
+    exec bash "$updater" "$@"
+}
+
 main() {
     trap main::on_interrupt INT TERM
 
@@ -22,6 +45,7 @@ main() {
     case $CPYX_ACTION in
         help)    args::usage;                              return 0 ;;
         version) printf '%s %s\n' "$CPYX_NAME" "$CPYX_VERSION"; return 0 ;;
+        update)  main::self_update "$@";                   return $? ;;
     esac
 
     validate::require_rsync

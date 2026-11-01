@@ -26,6 +26,7 @@ ${C_BOLD}Opciones:${C_RESET}
   -L, --no-log        No guardar log
   -b, --backup        Modo backup incremental con hardlinks (usa DESTINO como raíz)
   --keep N            En modo backup, conservar solo los últimos N snapshots
+  -u, --update        Actualizar cpyx a la última versión desde el repositorio
   -V, --version       Mostrar la versión
   -h, --help          Mostrar esta ayuda
 
@@ -73,6 +74,7 @@ args::parse() {
             --yes)      CPYX_ASSUME_YES=1 ;;
             --no-log)   CPYX_NO_LOG=1 ;;
             -b|--backup) CPYX_BACKUP_MODE=1 ;;
+            -u|--update) CPYX_ACTION=update ;;
             --exclude=*|--log=*|--keep=*)
                 args::_set_value "${arg%%=*}" "${arg#*=}" ;;
             --exclude|--log|--keep)
@@ -87,6 +89,7 @@ args::parse() {
                     case $flag in
                         h) CPYX_ACTION=help ;;
                         v|V) CPYX_ACTION=version ;;
+                        u) CPYX_ACTION=update ;;
                         n) CPYX_DRY_RUN=1 ;;
                         d) CPYX_DELETE=1 ;;
                         y) CPYX_ASSUME_YES=1 ;;
