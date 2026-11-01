@@ -101,6 +101,33 @@ rsync::backup_prune() {
     done
 }
 
+rsync::backup_stats() {
+    (( CPYX_BACKUP_MODE && CPYX_STATUS == 0 && ! CPYX_DRY_RUN )) || return 0
+    command -v du >/dev/null 2>&1 || return 0
+    local snap=$CPYX_BACKUP_SNAPSHOT
+    [[ -d $snap ]] || return 0
+    local apparent real saved saved_pct
+    apparent=$(du -sh --apparent-size "$snap" 2>/dev/null | awk '{print $1}')
+    real=$(du -sh "$snap" 2>/dev/null | awk '{print $1}')
+    [[ -z $apparent || -z $real ]] && return 0
+    # Cálculo aproximado en bytes para porcentaje
+    local a b
+    a=$(du -sb --apparent-size "$snap" 2>/dev/null | awk '{print $1}')
+    b=$(du -sb "$snap" 2>/dev/null | awk '{print $1}')
+    if [[ -n $a && -n $b && $a -gt 0 ]]; then
+        saved=$(( a - b ))
+        saved_pct=$(( saved * 100 / a ))
+        local saved_h
+        if (( saved >= 1073741824 )); then saved_h="$(awk "BEGIN {printf \"%.1f\", $saved/1073741824}") GB"
+        elif (( saved >= 1048576 )); then saved_h="$(awk "BEGIN {printf \"%.1f\", $saved/1048576}") MB"
+        elif (( saved >= 1024 )); then saved_h="$(awk "BEGIN {printf \"%.1f\", $saved/1024}") KB"
+        else saved_h="${saved} B"; fi
+        ui::note "Tamaño aparente: $apparent | En disco: $real | Ahorrado con hardlinks: $saved_h ($saved_pct%)"
+    else
+        ui::note "Tamaño aparente: $apparent | En disco: $real"
+    fi
+}
+
 rsync::backup_finalize() {
     (( CPYX_BACKUP_MODE && CPYX_STATUS == 0 && ! CPYX_DRY_RUN )) || return 0
     # Actualizar symlink latest de forma atómica
@@ -109,6 +136,7 @@ rsync::backup_finalize() {
     ln -sfn "$(basename "$CPYX_BACKUP_SNAPSHOT")" "$tmp_link"
     mv -f "$tmp_link" "$CPYX_BACKUP_LATEST"
     ui::note "latest -> $(basename "$CPYX_BACKUP_SNAPSHOT")"
+    rsync::backup_stats
 }
 
 # Ejecuta rsync. Deja el código de salida en CPYX_STATUS y la duración en
