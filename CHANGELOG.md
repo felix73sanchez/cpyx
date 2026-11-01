@@ -11,6 +11,11 @@ versionado según [SemVer](https://semver.org/lang/es/).
 ### Modificado
 - `validate.sh` auto-instala dependencias faltantes (`rsync`, `bash`, `pv`) usando el gestor de paquetes detectado.
 
+## [1.2.1] - 2026-11-01
+
+### Añadido
+- `-r, --restore`: restaurar archivos/directorios desde un snapshot o `latest`
+
 ## [1.2.0] - 2026-11-01
 
 ### Añadido
