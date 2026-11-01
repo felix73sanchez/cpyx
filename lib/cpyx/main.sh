@@ -38,6 +38,34 @@ main::self_update() {
     exec bash "$updater" "$@"
 }
 
+main::backup_list() {
+    local root=$1
+    [[ -d $root ]] || ui::die "$EX_NOINPUT" "Raíz de backups no existe: $root"
+    ui::init
+    local latest
+    latest=$(readlink -f "$root/latest" 2>/dev/null || true)
+    printf '%s\n' "Snapshots en: $root"
+    printf '%s\n' "----------------------------------------"
+    local -a snaps=()
+    mapfile -t snaps < <(core::backup_list "$root")
+    if (( ${#snaps[@]} == 0 )); then
+        printf '%s\n' "(ninguno)"
+        return 0
+    fi
+    local s snap_dir size
+    for s in "${snaps[@]}"; do
+        snap_dir="$root/$s"
+        if [[ -n $latest && "$(readlink -f "$snap_dir")" == "$latest" ]]; then
+            printf '%s\n' "  * $s  (latest)"
+        else
+            printf '%s\n' "    $s"
+        fi
+    done
+    printf '%s\n' "----------------------------------------"
+    size=$(du -sh "$root" 2>/dev/null | awk '{print $1}')
+    printf '%s\n' "Total usado: $size"
+}
+
 main() {
     trap main::on_interrupt INT TERM
 
@@ -46,9 +74,10 @@ main() {
     args::parse "$@"
 
     case $CPYX_ACTION in
-        help)    args::usage;                              return 0 ;;
-        version) printf '%s %s\n' "$CPYX_NAME" "$CPYX_VERSION"; return 0 ;;
-        update)  main::self_update "$@";                   return $? ;;
+        help)        args::usage;                              return 0 ;;
+        version)     printf '%s %s\n' "$CPYX_NAME" "$CPYX_VERSION"; return 0 ;;
+        update)      main::self_update "$@";                   return $? ;;
+        backup-list) main::backup_list "$CPYX_BACKUP_ROOT";    return 0 ;;
     esac
 
     validate::require_rsync

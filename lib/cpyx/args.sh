@@ -55,11 +55,14 @@ EOF
 # Guarda el valor de una opción que lo requiere (-x / -l / -X / --keep / --bwlimit)
 args::_set_value() {
     case $1 in
-        -x|--exclude)      CPYX_EXCLUDES+=("$2") ;;
-        -X|--exclude-from) args::_load_excludes_from "$2" ;;
-        -l|--log)          CPYX_LOG_FILE=$2 ;;
-        --keep)            CPYX_BACKUP_KEEP=$2 ;;
-        --bwlimit)         CPYX_BWLIMIT=$2 ;;
+        -x|--exclude)         CPYX_EXCLUDES+=("$2") ;;
+        -X|--exclude-from)    args::_load_excludes_from "$2" ;;
+        -l|--log)             CPYX_LOG_FILE=$2 ;;
+        --keep)               CPYX_BACKUP_KEEP=$2 ;;
+        --keep-daily)         CPYX_BACKUP_KEEP_DAILY=$2 ;;
+        --keep-weekly)        CPYX_BACKUP_KEEP_WEEKLY=$2 ;;
+        --keep-monthly)       CPYX_BACKUP_KEEP_MONTHLY=$2 ;;
+        --bwlimit)            CPYX_BWLIMIT=$2 ;;
     esac
 }
 
@@ -79,24 +82,26 @@ args::_load_excludes_from() {
 
 # args::parse "$@" - rellena las variables CPYX_*
 args::parse() {
-    local -a pos=()
+      local -a pos=()
     local arg cluster flag val
 
     while (( $# )); do
         arg=$1; shift
         case $arg in
             --) pos+=("$@"); break ;;
-            --help)     CPYX_ACTION=help ;;
-            --version)  CPYX_ACTION=version ;;
-            --dry-run)  CPYX_DRY_RUN=1 ;;
-            --delete)   CPYX_DELETE=1 ;;
-            --yes)      CPYX_ASSUME_YES=1 ;;
-            --no-log)   CPYX_NO_LOG=1 ;;
-            -b|--backup) CPYX_BACKUP_MODE=1 ;;
-            -u|--update) CPYX_ACTION=update ;;
-            --exclude=*|--log=*|--keep=*|--bwlimit=*|--exclude-from=*)
+            --help)        CPYX_ACTION=help ;;
+            --version)     CPYX_ACTION=version ;;
+            --backup-list) CPYX_ACTION=backup-list ;;
+            --dry-run)     CPYX_DRY_RUN=1 ;;
+            --delete)      CPYX_DELETE=1 ;;
+            --yes)         CPYX_ASSUME_YES=1 ;;
+            --no-log)      CPYX_NO_LOG=1 ;;
+            -q|--quiet)    CPYX_QUIET=1 ;;
+            -b|--backup)   CPYX_BACKUP_MODE=1 ;;
+            -u|--update)   CPYX_ACTION=update ;;
+            --exclude=*|--log=*|--keep=*|--bwlimit=*|--exclude-from=*|--keep-daily=*|--keep-weekly=*|--keep-monthly=*)
                 args::_set_value "${arg%%=*}" "${arg#*=}" ;;
-            --exclude|--log|--keep|--bwlimit|--exclude-from)
+            --exclude|--log|--keep|--bwlimit|--exclude-from|--keep-daily|--keep-weekly|--keep-monthly)
                 (( $# )) || ui::die "$EX_USAGE" "La opción $arg requiere un argumento"
                 args::_set_value "$arg" "$1"; shift ;;
             --*)
@@ -113,6 +118,7 @@ args::parse() {
                         d) CPYX_DELETE=1 ;;
                         y) CPYX_ASSUME_YES=1 ;;
                         L) CPYX_NO_LOG=1 ;;
+                        q) CPYX_QUIET=1 ;;
                         b) CPYX_BACKUP_MODE=1 ;;
                         X) 
                             if [[ -n $cluster ]]; then
@@ -140,6 +146,14 @@ args::parse() {
         esac
     done
 
+    if [[ $CPYX_ACTION == backup-list ]]; then
+        if (( ${#pos[@]} != 1 )); then
+            ui::die "$EX_USAGE" "--backup-list requiere la raíz de backups como argumento"
+        fi
+        CPYX_BACKUP_ROOT=${pos[0]}
+        return
+    fi
+
     if [[ $CPYX_ACTION == run ]]; then
         if (( ${#pos[@]} != 2 )); then
             ui::die "$EX_USAGE" "Se requieren ORIGEN y DESTINO. Usa '${CPYX_NAME} --help' para ver la ayuda."
@@ -153,11 +167,13 @@ args::parse() {
         fi
 
         # Validar --keep
-        if (( CPYX_BACKUP_KEEP )); then
-            if ! [[ $CPYX_BACKUP_KEEP =~ ^[1-9][0-9]*$ ]]; then
-                ui::die "$EX_USAGE" "--keep requiere un número entero positivo"
+        for k in CPYX_BACKUP_KEEP CPYX_BACKUP_KEEP_DAILY CPYX_BACKUP_KEEP_WEEKLY CPYX_BACKUP_KEEP_MONTHLY; do
+            if (( ${!k} )); then
+                if ! [[ ${!k} =~ ^[1-9][0-9]*$ ]]; then
+                    ui::die "$EX_USAGE" "--keep requiere un número entero positivo"
+                fi
             fi
-        fi
+        done
         if [[ -n $CPYX_BWLIMIT ]]; then
             if ! [[ $CPYX_BWLIMIT =~ ^[0-9]+[kKmMgG]?$ ]]; then
                 ui::die "$EX_USAGE" "--bwlimit debe ser un valor como 1000, 2M, 500k"

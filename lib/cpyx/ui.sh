@@ -23,11 +23,11 @@ ui::init() {
     fi
 }
 
-ui::info()  { printf '%s\n' "$*"; }
-ui::blank() { printf '\n'; }
-ui::note()  { printf '%s->%s %s\n' "$C_YELLOW" "$C_RESET" "$*"; }
-ui::warn()  { printf '%sAviso:%s %s\n' "$E_YELLOW" "$E_RESET" "$*" >&2; }
-ui::error() { printf '%sError:%s %s\n' "$E_RED" "$E_RESET" "$*" >&2; }
+ui::info()  { (( CPYX_QUIET )) && return 0; printf '%s\n' "$*"; }
+ui::blank() { (( CPYX_QUIET )) && return 0; printf '\n'; }
+ui::note()  { (( CPYX_QUIET )) && return 0; printf '%s->%s %s\n' "$C_YELLOW" "$C_RESET" "$*"; }
+ui::warn()  { (( CPYX_QUIET )) && return 0; printf '%sAviso:%s %s\n' "$E_YELLOW" "$E_RESET" "$*" >&2; }
+ui::error() { (( CPYX_QUIET )) && return 0; printf '%sError:%s %s\n' "$E_RED" "$E_RESET" "$*" >&2; }
 
 # ui::die CODIGO MENSAJE... - muestra el error y termina
 ui::die() {
@@ -37,17 +37,20 @@ ui::die() {
 }
 
 ui::banner() {
+    (( CPYX_QUIET )) && return 0
     printf '%s%s==================== %s ====================%s\n' \
         "$C_BOLD" "$C_BLUE" "$1" "$C_RESET"
 }
 
 ui::rule() {
+    (( CPYX_QUIET )) && return 0
     printf '%s%s======================================================%s\n' \
         "$C_BOLD" "$C_BLUE" "$C_RESET"
 }
 
 # ui::kv ETIQUETA VALOR - línea "Etiqueta: valor" alineada
 ui::kv() {
+    (( CPYX_QUIET )) && return 0
     printf '%s%-8s:%s %s\n' "$C_CYAN" "$1" "$C_RESET" "$2"
 }
 

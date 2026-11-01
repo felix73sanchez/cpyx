@@ -14,9 +14,6 @@ report::fmt_duration() {
 report::header() {
     ui::banner "CPYX $CPYX_VERSION - fsxsystem"
 
-report::header() {
-    ui::banner "CPYX $CPYX_VERSION - fsxsystem"
-
     if (( CPYX_BACKUP_MODE )); then
         ui::kv "Modo"     "${C_CYAN}BACKUP INCREMENTAL${C_RESET}"
         ui::kv "Origen"   "$CPYX_SRC"

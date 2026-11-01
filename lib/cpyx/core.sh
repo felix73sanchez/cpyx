@@ -24,13 +24,14 @@ CPYX_PROGRESS="${CPYX_PROGRESS:-1}"
 
 # Restablece toda la configuración de ejecución a sus valores por defecto
 core::reset_config() {
-    CPYX_ACTION="run"          # run | help | version
+    CPYX_ACTION="run"          # run | help | version | update | backup-list
     CPYX_SRC=""
     CPYX_DST=""
     CPYX_DRY_RUN=0
     CPYX_DELETE=0
     CPYX_ASSUME_YES=0
     CPYX_NO_LOG=0
+    CPYX_QUIET=0
     CPYX_LOG_FILE=""
     CPYX_EXCLUDES=()
     CPYX_RSYNC_VERSION=""
@@ -43,7 +44,11 @@ core::reset_config() {
     CPYX_TOTAL_FILES=0       # nº de archivos de la copia (origen local)
     CPYX_TMPFILES=()         # temporales a borrar al salir
     CPYX_BACKUP_MODE=0       # 1 = modo backup incremental
+    CPYX_BACKUP_LIST=0       # 1 = listar snapshots
     CPYX_BACKUP_KEEP=0       # número de snapshots a conservar (0 = sin rotación)
+    CPYX_BACKUP_KEEP_DAILY=0
+    CPYX_BACKUP_KEEP_WEEKLY=0
+    CPYX_BACKUP_KEEP_MONTHLY=0
     CPYX_BACKUP_ROOT=""      # raíz de backups (igual que DESTINO)
     CPYX_BACKUP_SNAPSHOT=""  # snapshot actual (DESTINO/FECHA-HORA)
     CPYX_BACKUP_LATEST=""    # enlace latest
