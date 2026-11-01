@@ -87,6 +87,54 @@ validate::require_pv() {
     return 0
 }
 
+validate::disk_space() {
+    (( CPYX_DRY_RUN )) && return 0
+    local src=$CPYX_SRC
+    local dst=$CPYX_DST
+    (( CPYX_BACKUP_MODE )) && dst=$CPYX_BACKUP_ROOT
+    [[ -d $dst ]] || return 0
+    command -v df >/dev/null 2>&1 || return 0
+    command -v du >/dev/null 2>&1 || return 0
+    local avail
+    avail=$(df -P "$dst" 2>/dev/null | awk 'NR==2 {print $4}')
+    [[ -z $avail ]] && return 0
+    # Tamaño estimado del origen (no incluye hardlinks, solo advertencia)
+    local needed_kb=0
+    if [[ -d $src ]]; then
+        needed_kb=$(du -sk "$src" 2>/dev/null | awk '{print $1}')
+    elif [[ -f $src ]]; then
+        needed_kb=$(( $(stat -c%s "$src" 2>/dev/null || echo 0) / 1024 ))
+    fi
+    (( needed_kb == 0 )) && return 0
+    if (( needed_kb > avail )); then
+        ui::warn "Espacio libre insuficiente en $(df -hP "$dst" | awk 'NR==2 {print $6}'): disponible ~$(df -hP "$dst" | awk 'NR==2 {print $4}'), necesario ~$(du -sh "$src" 2>/dev/null | awk '{print $1}')"
+        if [[ -t 0 ]] && (( ! CPYX_ASSUME_YES )); then
+            if ! ui::confirm "¿Continuar igualmente?"; then
+                ui::note "Cancelado."
+                exit 1
+            fi
+        fi
+    fi
+}
+
+validate::acquire_lock() {
+    local lock_root
+    if (( CPYX_BACKUP_MODE )); then
+        lock_root=$CPYX_BACKUP_ROOT
+    else
+        lock_root=$(dirname "$CPYX_DST")
+    fi
+    [[ -d $lock_root ]] || mkdir -p "$lock_root" 2>/dev/null || return 0
+    local lockfile="$lock_root/.cpyx.lock"
+    CPYX_TMPFILES+=("$lockfile")
+    if (set -C; echo $$ > "$lockfile") 2>/dev/null; then
+        return 0
+    fi
+    local pid
+    pid=$(cat "$lockfile" 2>/dev/null)
+    ui::die "$EX_USAGE" "Ya hay una instancia de cpyx en ejecución (PID $pid). Usa $lockfile para liberarlo si está colgado."
+}
+
 # Comprueba origen y destino; crea el destino local si hace falta
 validate::paths() {
     local src_remote=0 dst_remote=0

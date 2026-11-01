@@ -55,6 +55,8 @@ main() {
     validate::require_pv
     validate::paths
     validate::confirm_delete
+    validate::acquire_lock
+    validate::disk_space
     log::init
 
     report::header
